@@ -1,0 +1,18 @@
+[package]
+name = "upnpav"
+version = "0.1.0"
+edition = "2024"
+description = "UPnP AV 2.0 Device Architecture"
+
+
+[dependencies]
+tracing = "0.1"
+serde = { version = "1", features = ["derive"] }
+quick-xml = { version = "0.42", features = ["serialize"] }
+uuid = { version = "1", features = ["v4","v5"] }
+tokio = { version = "1", features = ["full"] }
+if-addrs = "0.15.0"
+mac_address = "1.1.8"
+axum = { version = "0.8.9", features = ["tokio"] }
+fastrand = "2"
+chrono = { version = "0.4", features = ["serde"] }
