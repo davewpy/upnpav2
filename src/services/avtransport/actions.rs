@@ -6,10 +6,12 @@
 /// Bridge structs are prefixed with `Action` to avoid name collision with traits.
 use std::sync::{Arc, Mutex};
 
-use super::r#static::{PlayMode, StateVariableName};
 use super::AvTransportEventPublisher;
+use super::r#static::{PlayMode, StateVariableName};
 use crate::services::avtransport::traits::*;
-use crate::types::upnp::{Action, ActionArgs, ArgumentDefinition, ArgumentDirection, Error, StateStore, StateValue};
+use crate::types::upnp::{
+    Action, ActionArgs, ArgumentDefinition, ArgumentDirection, Error, StateStore, StateValue,
+};
 
 // ===========================================================================
 // Required Actions (R) — MVP Core
@@ -35,11 +37,13 @@ impl<T: Play> ActionPlay<T> {
     }
 
     fn trigger_last_change(&self) {
-        let store = self.state_store.lock().unwrap();
-        let last_change_xml = crate::services::lastchange::build_last_change(
-            "urn:schemas-upnp-org:metadata-1-0/AVT/",
-            &store.collect_evented(),
-        );
+        let last_change_xml = {
+            let store = self.state_store.lock().unwrap();
+            crate::services::lastchange::build_last_change(
+                "urn:schemas-upnp-org:metadata-1-0/AVT/",
+                &store.collect_evented(),
+            )
+        };
         let mut store = self.state_store.lock().unwrap();
         if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
             last_change_var.current_value = StateValue::String(last_change_xml.clone());
@@ -83,7 +87,10 @@ impl<T: Play> Action for ActionPlay<T> {
             .parse::<u32>()
             .unwrap_or(0);
         let speed = args.get("Speed").unwrap_or("1").to_string();
-        let input = PlayInput { instance_id, speed: speed.clone() };
+        let input = PlayInput {
+            instance_id,
+            speed: speed.clone(),
+        };
         self.trait_impl
             .play(input)
             .map_err(|_| Error::ActionFailed)?;
@@ -126,11 +133,13 @@ impl<T: Stop> ActionStop<T> {
     }
 
     fn trigger_last_change(&self) {
-        let store = self.state_store.lock().unwrap();
-        let last_change_xml = crate::services::lastchange::build_last_change(
-            "urn:schemas-upnp-org:metadata-1-0/AVT/",
-            &store.collect_evented(),
-        );
+        let last_change_xml = {
+            let store = self.state_store.lock().unwrap();
+            crate::services::lastchange::build_last_change(
+                "urn:schemas-upnp-org:metadata-1-0/AVT/",
+                &store.collect_evented(),
+            )
+        };
         let mut store = self.state_store.lock().unwrap();
         if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
             last_change_var.current_value = StateValue::String(last_change_xml.clone());
@@ -205,11 +214,13 @@ impl<T: Seek> ActionSeek<T> {
     }
 
     fn trigger_last_change(&self) {
-        let store = self.state_store.lock().unwrap();
-        let last_change_xml = crate::services::lastchange::build_last_change(
-            "urn:schemas-upnp-org:metadata-1-0/AVT/",
-            &store.collect_evented(),
-        );
+        let last_change_xml = {
+            let store = self.state_store.lock().unwrap();
+            crate::services::lastchange::build_last_change(
+                "urn:schemas-upnp-org:metadata-1-0/AVT/",
+                &store.collect_evented(),
+            )
+        };
         let mut store = self.state_store.lock().unwrap();
         if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
             last_change_var.current_value = StateValue::String(last_change_xml.clone());
@@ -310,11 +321,13 @@ impl<T: Next> ActionNext<T> {
     }
 
     fn trigger_last_change(&self) {
-        let store = self.state_store.lock().unwrap();
-        let last_change_xml = crate::services::lastchange::build_last_change(
-            "urn:schemas-upnp-org:metadata-1-0/AVT/",
-            &store.collect_evented(),
-        );
+        let last_change_xml = {
+            let store = self.state_store.lock().unwrap();
+            crate::services::lastchange::build_last_change(
+                "urn:schemas-upnp-org:metadata-1-0/AVT/",
+                &store.collect_evented(),
+            )
+        };
         let mut store = self.state_store.lock().unwrap();
         if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
             last_change_var.current_value = StateValue::String(last_change_xml.clone());
@@ -389,11 +402,13 @@ impl<T: Previous> ActionPrevious<T> {
     }
 
     fn trigger_last_change(&self) {
-        let store = self.state_store.lock().unwrap();
-        let last_change_xml = crate::services::lastchange::build_last_change(
-            "urn:schemas-upnp-org:metadata-1-0/AVT/",
-            &store.collect_evented(),
-        );
+        let last_change_xml = {
+            let store = self.state_store.lock().unwrap();
+            crate::services::lastchange::build_last_change(
+                "urn:schemas-upnp-org:metadata-1-0/AVT/",
+                &store.collect_evented(),
+            )
+        };
         let mut store = self.state_store.lock().unwrap();
         if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
             last_change_var.current_value = StateValue::String(last_change_xml.clone());
@@ -568,12 +583,14 @@ impl<T: SetAVTransportURI> Action for ActionSetAVTransportURI<T> {
             )?;
             store.set(
                 StateVariableName::CurrentMediaCategory,
-                StateValue::String(if nr_tracks > 0 {
-                    "TRACK_AWARE"
-                } else {
-                    "NO_MEDIA"
-                }
-                .to_string()),
+                StateValue::String(
+                    if nr_tracks > 0 {
+                        "TRACK_AWARE"
+                    } else {
+                        "NO_MEDIA"
+                    }
+                    .to_string(),
+                ),
             )?;
         }
         // Trigger LastChange event
@@ -584,9 +601,7 @@ impl<T: SetAVTransportURI> Action for ActionSetAVTransportURI<T> {
                 &store.collect_evented(),
             );
             let mut store = self.state_store.lock().unwrap();
-            if let Some(last_change_var) =
-                store.get_mut(StateVariableName::LastChange)
-            {
+            if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
                 last_change_var.current_value = StateValue::String(last_change_xml.clone());
             }
             drop(store);
@@ -1166,11 +1181,13 @@ impl<T: Pause> ActionPause<T> {
     }
 
     fn trigger_last_change(&self) {
-        let store = self.state_store.lock().unwrap();
-        let last_change_xml = crate::services::lastchange::build_last_change(
-            "urn:schemas-upnp-org:metadata-1-0/AVT/",
-            &store.collect_evented(),
-        );
+        let last_change_xml = {
+            let store = self.state_store.lock().unwrap();
+            crate::services::lastchange::build_last_change(
+                "urn:schemas-upnp-org:metadata-1-0/AVT/",
+                &store.collect_evented(),
+            )
+        };
         let mut store = self.state_store.lock().unwrap();
         if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
             last_change_var.current_value = StateValue::String(last_change_xml.clone());
@@ -1245,11 +1262,13 @@ impl<T: SetPlayMode> ActionSetPlayMode<T> {
     }
 
     fn trigger_last_change(&self) {
-        let store = self.state_store.lock().unwrap();
-        let last_change_xml = crate::services::lastchange::build_last_change(
-            "urn:schemas-upnp-org:metadata-1-0/AVT/",
-            &store.collect_evented(),
-        );
+        let last_change_xml = {
+            let store = self.state_store.lock().unwrap();
+            crate::services::lastchange::build_last_change(
+                "urn:schemas-upnp-org:metadata-1-0/AVT/",
+                &store.collect_evented(),
+            )
+        };
         let mut store = self.state_store.lock().unwrap();
         if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
             last_change_var.current_value = StateValue::String(last_change_xml.clone());
