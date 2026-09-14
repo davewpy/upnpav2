@@ -74,6 +74,13 @@ async fn handle_request(
         .unwrap_or_default();
     let body = String::from_utf8(body_bytes.to_vec()).unwrap_or_default();
 
+    let soap_action = headers
+        .iter()
+        .find(|(k, _)| k.to_lowercase() == "soapaction")
+        .map(|(_, v)| v.as_str())
+        .unwrap_or("");
+    tracing::debug!("received: {}", soap_action);
+
     let actions = actions.lock().unwrap();
 
     let (status, body) = match parse_request(&headers, &body) {
@@ -157,6 +164,7 @@ pub fn parse_request(
         .find(|(k, _)| k.to_lowercase() == "soapaction")
         .map(|(_, v)| v.as_str())
         .unwrap_or("");
+    let soap_action = soap_action.trim_matches('"');
     let parts: Vec<&str> = soap_action.split('#').collect();
     let (ns, act) = match parts.as_slice() {
         [ns, act] if !ns.is_empty() && !act.is_empty() => (ns.to_string(), act.to_string()),
