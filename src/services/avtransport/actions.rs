@@ -594,21 +594,21 @@ impl<T: SetAVTransportURI> Action for ActionSetAVTransportURI<T> {
             )?;
         }
         // Trigger LastChange event
-        {
+        let last_change_xml = {
             let store = self.state_store.lock().unwrap();
-            let last_change_xml = crate::services::lastchange::build_last_change(
+            crate::services::lastchange::build_last_change(
                 "urn:schemas-upnp-org:metadata-1-0/AVT/",
                 &store.collect_evented(),
-            );
-            let mut store = self.state_store.lock().unwrap();
-            if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
-                last_change_var.current_value = StateValue::String(last_change_xml.clone());
-            }
-            drop(store);
-            let properties = vec![("LastChange".to_string(), last_change_xml)];
-            let mut publisher = self.event_publisher.lock().unwrap();
-            let _ = publisher.notify(&properties);
+            )
+        };
+        let mut store = self.state_store.lock().unwrap();
+        if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
+            last_change_var.current_value = StateValue::String(last_change_xml.clone());
         }
+        drop(store);
+        let properties = vec![("LastChange".to_string(), last_change_xml)];
+        let mut publisher = self.event_publisher.lock().unwrap();
+        let _ = publisher.notify(&properties);
 
         let mut out = ActionArgs::new();
         out.set("NrTracks".to_string(), output.nr_tracks.to_string());
