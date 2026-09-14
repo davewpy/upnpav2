@@ -74,13 +74,6 @@ async fn handle_request(
         .unwrap_or_default();
     let body = String::from_utf8(body_bytes.to_vec()).unwrap_or_default();
 
-    let soap_action = headers
-        .iter()
-        .find(|(k, _)| k.to_lowercase() == "soapaction")
-        .map(|(_, v)| v.as_str())
-        .unwrap_or("");
-    tracing::debug!("received: {}", soap_action);
-
     let actions = actions.lock().unwrap();
 
     let (status, body) = match parse_request(&headers, &body) {
