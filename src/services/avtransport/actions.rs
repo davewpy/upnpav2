@@ -563,7 +563,7 @@ impl<T: SetAVTransportURI> Action for ActionSetAVTransportURI<T> {
             let mut store = self.state_store.lock().unwrap();
             store.set(
                 StateVariableName::AVTransportURI,
-                StateValue::String(current_uri),
+                StateValue::Uri(current_uri),
             )?;
             store.set(
                 StateVariableName::AVTransportURIMetaData,
