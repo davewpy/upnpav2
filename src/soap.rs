@@ -116,8 +116,13 @@ async fn handle_request(
                         )
                     }
                     Err(e) => {
-                        tracing::debug!("error: {} -> code {}", action_name, e as i32);
-                        (StatusCode::OK, build_fault(e as i32, "Action failed"))
+                        tracing::debug!(
+                            "error: {} -> code {} ({})",
+                            action_name,
+                            e as i32,
+                            e.description()
+                        );
+                        (StatusCode::OK, build_fault(e as i32, e.description()))
                     }
                 },
             }
