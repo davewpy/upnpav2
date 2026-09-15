@@ -343,7 +343,7 @@ fn build_search_responses(device: &crate::config::SsdpDevice, st: &str) -> Vec<S
 
     usns.into_iter()
         .map(|usn| {
-            tracing::debug!(usn = %usn, st = %st, "response USN");
+            tracing::debug!(usn = %usn, st = %st, "response");
             let mut resp = format!(
                 "HTTP/1.1 200 OK\r\n\
                  CACHE-CONTROL: max-age={}\r\n\
@@ -492,11 +492,11 @@ fn msearch_listener(
                         // Build and send all matching responses
                         let responses = build_search_responses(&device, &st);
                         for resp in responses {
-                            tracing::trace!(resp = %resp, "response trace");
+                            tracing::trace!(resp = %resp, "response");
                             if let Err(e) = socket.send_to(resp.as_bytes(), peer).await {
                                 error!(error = %e, peer = %peer, "failed to send response");
                             } else {
-                                debug!(peer = %peer, "response sent");
+                                debug!(peer = %peer, "response ");
                             }
                         }
                     });
