@@ -129,7 +129,6 @@ async fn handle_request(
         }
     };
 
-    tracing::debug!("response with status: {}", status);
     UpnpResponse {
         status,
         content_type: ContentType::XmlUtf8,
