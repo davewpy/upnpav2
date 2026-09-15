@@ -95,6 +95,9 @@ async fn handle_request(
                 action_name,
                 args.pairs().len()
             );
+            for (k, v) in args.pairs() {
+                tracing::trace!("  arg: {} = {}", k, v);
+            }
             match actions.get(&action_name) {
                 None => {
                     tracing::debug!("action not implemented: {}", action_name);
@@ -192,23 +195,33 @@ fn parse_xml_body(xml: &str) -> Result<Vec<(String, String)>, Error> {
                     let action = tag.split(':').last().unwrap_or(&tag);
                     action_name = Some(action.to_string());
                 } else if in_body && action_name.is_some() {
-                    // Child elements are arguments
+                    // Child elements are arguments — capture full inner XML
                     let arg_name = tag.split(':').last().unwrap_or(&tag);
 
-                    // Read text content
-                    let mut text_buf = Vec::new();
-                    loop {
-                        match reader.read_event_into(&mut text_buf) {
-                            Ok(Event::Text(t)) => {
-                                let value = t.as_ref().to_string();
-                                args.push((arg_name.to_string(), value));
+                    // Collect all events until matching End event
+                    let mut depth = 1;
+                    let mut inner = String::new();
+                    inner.push_str(e.as_ref());
+
+                    while depth > 0 {
+                        buf.clear();
+                        match reader.read_event_into(&mut buf) {
+                            Ok(ref ev) => {
+                                inner.push_str(ev.as_ref());
+                                match ev {
+                                    Event::Start(_) => depth += 1,
+                                    Event::End(_) => depth -= 1,
+                                    Event::Eof => break,
+                                    _ => {}
+                                }
                             }
-                            Ok(Event::End(_)) => break,
-                            Ok(_) => {}
                             Err(_) => break,
                         }
-                        text_buf.clear();
                     }
+
+                    // Convert to string, trimming whitespace
+                    let value = inner.trim().to_string();
+                    args.push((arg_name.to_string(), value));
                 }
             }
             Ok(Event::End(e)) => {
