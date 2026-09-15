@@ -198,29 +198,30 @@ fn parse_xml_body(xml: &str) -> Result<Vec<(String, String)>, Error> {
                     // Child elements are arguments — capture full inner XML
                     let arg_name = tag.split(':').last().unwrap_or(&tag);
 
-                    // Collect all events until matching End event
+                    // Record position right after the opening tag
+                    let inner_start = reader.buffer_position() as usize;
                     let mut depth = 1;
-                    let mut inner = String::new();
-                    inner.push_str(e.as_ref());
+                    let mut inner_end = inner_start;
 
                     while depth > 0 {
                         buf.clear();
+                        // Record position BEFORE reading the next event
+                        inner_end = reader.buffer_position() as usize;
                         match reader.read_event_into(&mut buf) {
-                            Ok(ref ev) => {
-                                inner.push_str(ev.as_ref());
-                                match ev {
-                                    Event::Start(_) => depth += 1,
-                                    Event::End(_) => depth -= 1,
-                                    Event::Eof => break,
-                                    _ => {}
+                            Ok(Event::Start(_)) => depth += 1,
+                            Ok(Event::End(_)) => {
+                                depth -= 1;
+                                if depth == 0 {
+                                    break;
                                 }
                             }
+                            Ok(Event::Eof) => break,
                             Err(_) => break,
+                            _ => {}
                         }
                     }
 
-                    // Convert to string, trimming whitespace
-                    let value = inner.trim().to_string();
+                    let value = xml[inner_start..inner_end].trim().to_string();
                     args.push((arg_name.to_string(), value));
                 }
             }
