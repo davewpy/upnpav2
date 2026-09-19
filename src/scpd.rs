@@ -341,12 +341,45 @@ impl<S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariabl
     }
 
     /// Build the `<serviceStateTable>` element from registered state variables.
+    ///
+    /// Filters: only emit state variables that are:
+    /// 1. Referenced by at least one registered action's argument, OR
+    /// 2. Evented (sendEvents="yes"), OR
+    /// 3. A_ARG_TYPE type definitions (argument_type=true)
     fn build_state_table(&self) -> String {
+        // Collect all relatedStateVariable refs from registered actions
+        let mut referenced_vars: std::collections::HashSet<String> =
+            std::collections::HashSet::new();
+        {
+            let actions = self.actions.lock().unwrap();
+            for def in actions.action_definitions() {
+                for arg in &def.in_args {
+                    if let Some(var) = &arg.related_state_var {
+                        referenced_vars.insert(var.clone());
+                    }
+                }
+                for arg in &def.out_args {
+                    if let Some(var) = &arg.related_state_var {
+                        referenced_vars.insert(var.clone());
+                    }
+                }
+            }
+        }
+
         let mut xml = String::new();
         xml.push_str("  <serviceStateTable>\n");
         let store = self.state_store.lock().unwrap();
         for name in store.names() {
             if let Some(def) = store.schema(&name) {
+                // Filter: only emit if referenced by an action, evented, or A_ARG_TYPE
+                let is_referenced = referenced_vars.contains(&name.to_string());
+                let is_evented = def.send_events;
+                let is_arg_type = def.argument_type;
+
+                if !is_referenced && !is_evented && !is_arg_type {
+                    continue; // Skip unregistered state variables
+                }
+
                 xml.push_str("    <stateVariable");
                 if def.send_events {
                     xml.push_str(" sendEvents=\"yes\"");
