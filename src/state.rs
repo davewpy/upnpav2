@@ -338,6 +338,11 @@ impl<S: StateVariableName> StateStore<S> {
         self.variables.keys().cloned().collect()
     }
 
+    /// Get mutable access to a state variable's schema definition.
+    pub fn schema_mut(&mut self, name: &str) -> Option<&mut StateSchema<S>> {
+        self.schema.get_mut(name)
+    }
+
     // =========================================================================
     // Instance Scoping Methods
     // =========================================================================
