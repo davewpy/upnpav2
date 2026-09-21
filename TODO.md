@@ -1,11 +1,11 @@
 # UPnP AV 2.0 Service Library
-- Implement SOAP argument validation against ActionMap/StateVariables
-- Implement runtime state variable value tracking (StateVariable.current_value)
-- State Variables: Vendor Defined ranges from Application
-    - Volume [0..100], [min:0], [max:0]
-    - VolumeDB [NOT_IMPLEMENTED] 
-    - Brightness
-    - Contrast
-    - Sharpness
-    - HorizontalKeystone
-    - VerticalKeystone
+
+
+
+
+---
+**Template** - Insert above
+## Objective [Description]
+- Explain Rationale
+- Or show use-case
+- Least preferred: Using code examples
