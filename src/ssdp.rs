@@ -496,7 +496,7 @@ fn msearch_listener(
                             if let Err(e) = socket.send_to(resp.as_bytes(), peer).await {
                                 error!(error = %e, peer = %peer, "failed to send response");
                             } else {
-                                debug!(peer = %peer, "response ");
+                                debug!(peer = %peer, "response");
                             }
                         }
                     });
