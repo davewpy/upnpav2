@@ -9,7 +9,7 @@ pub enum ServiceVersion {
 /// UPnP service definition — name, base namespace, and version.
 /// UPnP device type (per UDA 2.0 spec).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DeviceType {
+pub enum Device {
     /// MediaRenderer — renders media content
     MediaRenderer,
     /// MediaServer — stores and serves media content
@@ -24,7 +24,7 @@ pub enum DeviceType {
     ControlPoint,
 }
 
-impl DeviceType {
+impl Device {
     /// Full device type URN: urn:schemas-upnp-org:device:<type>:1
     pub fn urn(&self) -> String {
         let name = match self {

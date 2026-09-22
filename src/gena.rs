@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::net::UdpSocket;
 use std::time::Instant;
 
-use crate::types::Error;
+use crate::types::upnp;
 
 /// A single subscriber to events.
 #[allow(dead_code)]
@@ -84,11 +84,14 @@ impl EventPublisher {
     ///
     /// If timeout is None, uses the subscriber's existing timeout.
     /// Returns error if sid not found or expired.
-    pub fn renew(&mut self, sid: &str, timeout: Option<u32>) -> Result<(), Error> {
-        let subscriber = self.subscribers.get_mut(sid).ok_or(Error::InvalidAction)?;
+    pub fn renew(&mut self, sid: &str, timeout: Option<u32>) -> Result<(), upnp::Error> {
+        let subscriber = self
+            .subscribers
+            .get_mut(sid)
+            .ok_or(upnp::Error::InvalidAction)?;
 
         if Instant::now() >= subscriber.expires_at {
-            return Err(Error::InvalidAction);
+            return Err(upnp::Error::InvalidAction);
         }
 
         let new_timeout = timeout.unwrap_or(subscriber.timeout);
@@ -101,8 +104,10 @@ impl EventPublisher {
     /// Unsubscribe — remove a subscription.
     ///
     /// Returns error if sid not found.
-    pub fn unsubscribe(&mut self, sid: &str) -> Result<(), Error> {
-        self.subscribers.remove(sid).ok_or(Error::InvalidAction)?;
+    pub fn unsubscribe(&mut self, sid: &str) -> Result<(), upnp::Error> {
+        self.subscribers
+            .remove(sid)
+            .ok_or(upnp::Error::InvalidAction)?;
         Ok(())
     }
 

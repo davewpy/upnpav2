@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use crate::scpd::ScpdHandler;
 use crate::soap::SoapHandler;
-use crate::types::{ServiceVersion, Services};
+use crate::types::upnp;
 
 /// Default device description path for HTTP routing and SSDP LOCATION headers.
 pub const DESCRIPTION_PATH: &str = "/upnp/description.xml";
@@ -153,8 +153,8 @@ impl SsdpDevice {
         ip_addr: std::net::IpAddr,
         http_port: u16,
         server_string: String,
-        device_type: crate::types::DeviceType,
-        services: Vec<crate::types::Services>,
+        device_type: upnp::Device,
+        services: Vec<upnp::Services>,
         boot_id: Option<u32>,
         config_id: Option<u32>,
         ssdp_port: Option<u16>,
@@ -185,9 +185,9 @@ impl SsdpDevice {
         let max_version = services
             .iter()
             .map(|svc| match svc.version() {
-                crate::types::ServiceVersion::V1 => 1,
-                crate::types::ServiceVersion::V2 => 2,
-                crate::types::ServiceVersion::V3 => 3,
+                upnp::ServiceVersion::V1 => 1,
+                upnp::ServiceVersion::V2 => 2,
+                upnp::ServiceVersion::V3 => 3,
             })
             .max()
             .unwrap_or(3);
@@ -278,17 +278,17 @@ impl DeviceConfig {
 
         // Register SOAP handlers
         server = server.register(SoapHandler::new(
-            Services::AVTransport(ServiceVersion::V3).url_control(),
+            upnp::Services::AVTransport(upnp::ServiceVersion::V3).url_control(),
             av_transport.actions(),
             server_header.clone(),
         ));
         server = server.register(SoapHandler::new(
-            Services::ConnectionManager(ServiceVersion::V3).url_control(),
+            upnp::Services::ConnectionManager(upnp::ServiceVersion::V3).url_control(),
             connection_manager.actions(),
             server_header.clone(),
         ));
         server = server.register(SoapHandler::new(
-            Services::RenderingControl(ServiceVersion::V3).url_control(),
+            upnp::Services::RenderingControl(upnp::ServiceVersion::V3).url_control(),
             rendering_control.actions(),
             server_header.clone(),
         ));
