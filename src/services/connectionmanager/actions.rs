@@ -253,12 +253,26 @@ impl<T: GetFeatureList> Action for ActionGetFeatureList<T> {
 
 pub struct ActionPrepareForConnection<T: PrepareForConnection> {
     trait_impl: Arc<T>,
+    /// Reference to connection table for registering new connections.
+    connection_table: Arc<
+        std::sync::Mutex<
+            std::collections::HashMap<i32, crate::services::connectionmanager::ConnectionInfo>,
+        >,
+    >,
 }
 
 impl<T: PrepareForConnection> ActionPrepareForConnection<T> {
-    pub fn new(trait_impl: T) -> Self {
+    pub fn new(
+        trait_impl: T,
+        connection_table: Arc<
+            std::sync::Mutex<
+                std::collections::HashMap<i32, crate::services::connectionmanager::ConnectionInfo>,
+            >,
+        >,
+    ) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
+            connection_table,
         }
     }
 }
@@ -339,8 +353,34 @@ impl<T: PrepareForConnection> Action for ActionPrepareForConnection<T> {
         };
         let output = self
             .trait_impl
-            .prepare_for_connection(input)
-            .map_err(|_| Error::ActionFailed)?;
+            .prepare_for_connection(input.clone())
+            .map_err(|e| {
+                // Map connection manager errors to UPnP error codes
+                match e.to_string().as_str() {
+                    "702 Incompatible Directions" => {
+                        Error::from_code(702).unwrap_or(Error::ActionFailed)
+                    }
+                    "708 Connection Table overflow" => {
+                        Error::from_code(708).unwrap_or(Error::ActionFailed)
+                    }
+                    _ => Error::ActionFailed,
+                }
+            })?;
+
+        // Register connection in library's connection table
+        {
+            let mut table = self.connection_table.lock().unwrap();
+            table.insert(
+                output.connection_id,
+                crate::services::connectionmanager::ConnectionInfo {
+                    protocol_info: output.av_transport_id.to_string(), // Placeholder — app bridge sets this
+                    direction: input.direction,
+                    peer_connection_manager: input.peer_connection_manager.clone(),
+                    peer_connection_id: input.peer_connection_id,
+                },
+            );
+        }
+
         let mut out = ActionArgs::new();
         out.set("ConnectionID".to_string(), output.connection_id.to_string());
         out.set(
@@ -354,12 +394,26 @@ impl<T: PrepareForConnection> Action for ActionPrepareForConnection<T> {
 
 pub struct ActionConnectionComplete<T: ConnectionComplete> {
     trait_impl: Arc<T>,
+    /// Reference to connection table for removing connections.
+    connection_table: Arc<
+        std::sync::Mutex<
+            std::collections::HashMap<i32, crate::services::connectionmanager::ConnectionInfo>,
+        >,
+    >,
 }
 
 impl<T: ConnectionComplete> ActionConnectionComplete<T> {
-    pub fn new(trait_impl: T) -> Self {
+    pub fn new(
+        trait_impl: T,
+        connection_table: Arc<
+            std::sync::Mutex<
+                std::collections::HashMap<i32, crate::services::connectionmanager::ConnectionInfo>,
+            >,
+        >,
+    ) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
+            connection_table,
         }
     }
 }
@@ -388,6 +442,16 @@ impl<T: ConnectionComplete> Action for ActionConnectionComplete<T> {
             .ok_or(Error::ArgumentValueInvalid)?
             .parse::<i32>()
             .map_err(|_| Error::ArgumentValueInvalid)?;
+
+        // Validate and remove from library's connection table
+        {
+            let mut table = self.connection_table.lock().unwrap();
+            if !table.contains_key(&connection_id) {
+                return Err(Error::from_code(706).unwrap_or(Error::ActionFailed));
+            }
+            table.remove(&connection_id);
+        }
+
         let input = ConnectionCompleteInput { connection_id };
         self.trait_impl
             .connection_complete(input)

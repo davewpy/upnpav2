@@ -9,7 +9,21 @@ use crate::{
     connectionmanager::r#static::V3,
     types::upnp::{Action, ActionMap, Services, StateSchema, StateStore, StateValue},
 };
+use std::collections::HashMap;
 use std::sync::Arc;
+
+/// Connection table entry — tracks AVTransportID/RcsID bindings per spec §4.2.
+#[derive(Debug, Clone)]
+pub struct ConnectionInfo {
+    /// Protocol info for the stream (from RemoteProtocolInfo input).
+    pub protocol_info: String,
+    /// Direction: Input or Output.
+    pub direction: r#static::Direction,
+    /// Peer ConnectionManager reference (UDN/serviceId).
+    pub peer_connection_manager: String,
+    /// Peer's ConnectionID (-1 if unknown).
+    pub peer_connection_id: i32,
+}
 
 /// ConnectionManager service — owns action registry, state variables, and eventing.
 ///
@@ -19,10 +33,17 @@ use std::sync::Arc;
 ///
 /// State variables are initialized in `init_state_vars()` and owned by this struct.
 /// When state changes via `set_state_var()`, the service automatically triggers GENA events.
+///
+/// Connection tracking (per UPnP-av-ConnectionManager-v3 spec §4.2):
+/// - PrepareForConnection() allocates ConnectionID and binds AVTransportID/RcsID
+/// - CurrentConnectionIDs state variable tracks active connections
+/// - ConnectionComplete() removes the connection from the table
 pub struct ConnectionManagerService {
     actions: Arc<std::sync::Mutex<ActionMap>>,
     state_store: Arc<std::sync::Mutex<StateStore<r#static::StateVariableName>>>,
     event_publisher: Arc<std::sync::Mutex<EventPublisher>>,
+    /// Connection table: ConnectionID → (AVTransportID, RcsID, metadata).
+    connection_table: Arc<std::sync::Mutex<HashMap<i32, ConnectionInfo>>>,
 }
 
 /// Shared event publisher type alias for convenience.
@@ -41,10 +62,27 @@ impl ConnectionManagerService {
     pub fn with_event_publisher(publisher: EventPublisher) -> Self {
         let mut state_store = StateStore::new();
         Self::init_state_vars(&mut state_store);
+
+        // Per UPnP AV spec §5.4.3: ConnectionManager always has a default implicit connection
+        // (ConnectionID=0, AVTransportID=0, RcsID=0) that exists without PrepareForConnection().
+        let mut connection_table = HashMap::new();
+        connection_table.insert(
+            0,
+            ConnectionInfo {
+                protocol_info: String::new(),
+                direction: r#static::Direction::Output,
+                peer_connection_manager: String::new(),
+                peer_connection_id: -1,
+            },
+        );
+
         Self {
-            actions: Arc::new(std::sync::Mutex::new(ActionMap::new(Services::ConnectionManager(V3)))),
+            actions: Arc::new(std::sync::Mutex::new(ActionMap::new(
+                Services::ConnectionManager(V3),
+            ))),
             state_store: Arc::new(std::sync::Mutex::new(state_store)),
             event_publisher: Arc::new(std::sync::Mutex::new(publisher)),
+            connection_table: Arc::new(std::sync::Mutex::new(connection_table)),
         }
     }
 
@@ -56,6 +94,105 @@ impl ConnectionManagerService {
     /// Get an Arc-wrapped reference to the state store for action construction.
     pub fn state_store(&self) -> Arc<std::sync::Mutex<StateStore<r#static::StateVariableName>>> {
         Arc::clone(&self.state_store)
+    }
+
+    // ===========================================================================
+    // Connection Table Management (per UPnP-av-ConnectionManager-v3 spec §4.2)
+    // ===========================================================================
+
+    /// Register a new connection in the table and update CurrentConnectionIDs state variable.
+    ///
+    /// Returns error 708 if the connection table is full (single-connection device).
+    pub fn register_connection(
+        &self,
+        connection_id: i32,
+        info: ConnectionInfo,
+    ) -> Result<(), r#static::Error> {
+        let mut table = self.connection_table.lock().unwrap();
+
+        // Check for existing connection — single connection device per spec §4.2
+        if !table.is_empty() {
+            return Err(r#static::Error::ConnectionTableOverflow);
+        }
+
+        table.insert(connection_id, info);
+
+        // Update CurrentConnectionIDs state variable (CSV of active IDs)
+        let mut store = self.state_store.lock().unwrap();
+        let _ = store.set(
+            r#static::StateVariableName::CurrentConnectionIDs,
+            StateValue::String(connection_id.to_string()),
+        );
+
+        Ok(())
+    }
+
+    /// Remove a connection from the table and update CurrentConnectionIDs state variable.
+    ///
+    /// Returns error 706 if the connection ID is not found.
+    pub fn remove_connection(&self, connection_id: i32) -> Result<(), r#static::Error> {
+        let mut table = self.connection_table.lock().unwrap();
+
+        // Validate connection exists before removing
+        if !table.contains_key(&connection_id) {
+            return Err(r#static::Error::InvalidConnectionReference);
+        }
+
+        table.remove(&connection_id);
+
+        // Update CurrentConnectionIDs state variable (CSV of remaining IDs)
+        let mut store = self.state_store.lock().unwrap();
+        let remaining_ids: Vec<String> = table.keys().map(|id| id.to_string()).collect();
+        let _ = store.set(
+            r#static::StateVariableName::CurrentConnectionIDs,
+            StateValue::String(remaining_ids.join(",")),
+        );
+
+        Ok(())
+    }
+
+    /// Get the connection info for a given connection ID.
+    ///
+    /// Returns error 706 if the connection ID is not found.
+    pub fn get_connection_info(
+        &self,
+        connection_id: i32,
+    ) -> Result<ConnectionInfo, r#static::Error> {
+        self.connection_table
+            .lock()
+            .unwrap()
+            .get(&connection_id)
+            .cloned()
+            .ok_or(r#static::Error::InvalidConnectionReference)
+    }
+
+    /// Get the current connection IDs as a CSV string.
+    pub fn get_current_connection_ids(&self) -> String {
+        let table = self.connection_table.lock().unwrap();
+        let ids: Vec<String> = table.keys().map(|id| id.to_string()).collect();
+        ids.join(",")
+    }
+
+    /// Validate that a connection ID exists in the table.
+    ///
+    /// Returns error 706 if not found.
+    pub fn validate_connection(&self, connection_id: i32) -> Result<(), r#static::Error> {
+        self.connection_table
+            .lock()
+            .unwrap()
+            .contains_key(&connection_id)
+            .then_some(())
+            .ok_or(r#static::Error::InvalidConnectionReference)
+    }
+
+    /// Get the number of active connections.
+    pub fn connection_count(&self) -> usize {
+        self.connection_table.lock().unwrap().len()
+    }
+
+    /// Get a reference to the connection table for validation by other bridges.
+    pub fn connection_table(&self) -> &Arc<std::sync::Mutex<HashMap<i32, ConnectionInfo>>> {
+        &self.connection_table
     }
 
     /// Initialize all ConnectionManager state variables per UPnP-av-ConnectionManager-v3 spec §4.2.
