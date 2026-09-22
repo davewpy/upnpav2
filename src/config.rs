@@ -131,6 +131,8 @@ pub struct SsdpDevice {
     pub config_id: u32,
     /// UPnP services this device exposes
     pub services: Vec<crate::types::upnp::Services>,
+    /// Maximum service version for backward-compatible SSDP announcements (always 3)
+    pub max_version: u32,
 
     /// Device description path (e.g., "/description.xml")
     pub description_path: &'static str,
@@ -178,6 +180,18 @@ impl SsdpDevice {
         const MAX_31BIT: u32 = 2_147_483_647;
         // Per UPnP 2.0 spec: CACHE-CONTROL max-age >= 1800
         const MIN_MAX_AGE: u32 = 1800;
+
+        // Compute max service version across all services (always 3 for our device)
+        let max_version = services
+            .iter()
+            .map(|svc| match svc.version() {
+                crate::types::ServiceVersion::V1 => 1,
+                crate::types::ServiceVersion::V2 => 2,
+                crate::types::ServiceVersion::V3 => 3,
+            })
+            .max()
+            .unwrap_or(3);
+
         Self {
             udn,
             ip_addr,
@@ -191,6 +205,7 @@ impl SsdpDevice {
             boot_id: boot_id.map(|v| v.min(MAX_31BIT)).unwrap_or(1),
             config_id: config_id.map(|v| v.min(MAX_31BIT)).unwrap_or(1),
             services,
+            max_version,
             description_path: DESCRIPTION_PATH,
             description_url: format!("http://{}:{}{}", ip_addr, http_port, DESCRIPTION_PATH),
         }
