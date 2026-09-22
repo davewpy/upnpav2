@@ -323,7 +323,19 @@ fn build_search_responses(device: &crate::config::SsdpDevice, st: &str) -> Vec<S
         _ => {
             // Check if ST matches device type or any service type
             let matches_device = st == device.device_type;
-            let matches_service = device.services.iter().any(|svc| st == svc.full_namespace());
+
+            // Version-agnostic service matching: parse ST URN by name only
+            let parts: Vec<&str> = st.split(':').collect();
+            let matches_service = if parts.len() == 5
+                && parts[0] == "urn"
+                && parts[1] == "schemas-upnp-org"
+                && parts[2] == "service"
+            {
+                let svc_name = parts[3];
+                device.services.iter().any(|svc| svc.name() == svc_name)
+            } else {
+                false
+            };
 
             if matches_device {
                 usns.push(format!("uuid:{}::{}", device.udn, device.device_type));
