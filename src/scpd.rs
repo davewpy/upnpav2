@@ -125,6 +125,10 @@ impl DescriptionHandler {
                 service.full_namespace()
             ));
             xml.push_str(&format!(
+                "        <serviceId>urn:upnp-org:serviceId:{}</serviceId>\n",
+                service.name()
+            ));
+            xml.push_str(&format!(
                 "        <SCPDURL>{}</SCPDURL>\n",
                 service.scpd_url()
             ));
