@@ -364,17 +364,8 @@ fn build_search_responses(device: &crate::config::SsdpDevice, st: &str) -> Vec<S
                  LOCATION: {}\r\n\
                  SERVER: {}\r\n\
                  ST: {}\r\n\
-                 USN: {}\r\n\
-                 BOOTID.UPNP.ORG: {}\r\n\
-                 CONFIGID.UPNP.ORG: {}\r\n",
-                device.max_age,
-                date,
-                device.description_url,
-                device.server_string,
-                st,
-                usn,
-                device.boot_id,
-                device.config_id,
+                 USN: {}\r\n",
+                device.max_age, date, device.description_url, device.server_string, st, usn,
             );
 
             if device.ssdp_port != 1900 {
