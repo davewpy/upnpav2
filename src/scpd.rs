@@ -14,7 +14,7 @@ use quick_xml::escape::escape as escape_xml_str;
 
 use crate::config::{Icon, SCPD_PATH_PREFIX, SCPD_PATH_SUFFIX, SsdpDevice, UpnpDevice};
 use crate::http::{CacheControl, ContentType, HttpHandler, UpnpResponse};
-use crate::types::{ActionMap, StateStore};
+use crate::types::upnp::{ActionMap, StateStore};
 
 /// HTTP handler for device description and icon.
 #[derive(Clone)]

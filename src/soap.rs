@@ -8,7 +8,7 @@ use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::reader::Reader;
 
 use crate::http::{CacheControl, ContentType, HttpHandler, UpnpResponse};
-use crate::types::{ActionArgs, ActionMap, Error};
+use crate::types::upnp::{ActionArgs, ActionMap, Error};
 
 /// HTTP handler that processes SOAP requests for a single service.
 ///
