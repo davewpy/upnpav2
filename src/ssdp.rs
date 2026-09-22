@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use tokio::net::UdpSocket;
-use tracing::{debug, error, warn};
+use tracing::{trace, debug, error, warn, info};
 
 /// Handle for SSDP — M-SEARCH listening loop and announcement sending.
 ///
@@ -46,6 +46,7 @@ impl Server {
                 error!(error = %e, "Failed to send SSDP update");
             }
         }
+        trace!("update sent");
     }
 
     /// Send ssdp:byebye for root device, device type, and each service.
@@ -355,7 +356,7 @@ fn build_search_responses(device: &crate::config::SsdpDevice, st: &str) -> Vec<S
 
     usns.into_iter()
         .map(|usn| {
-            tracing::debug!(usn = %usn, st = %st, "response");
+            debug!(usn = %usn, st = %st, "response");
             let mut resp = format!(
                 "HTTP/1.1 200 OK\r\n\
                  CACHE-CONTROL: max-age={}\r\n\
@@ -403,6 +404,7 @@ pub fn start(device: crate::config::SsdpDevice) -> Server {
                 warn!(error = %e, ip = ?device.ip_addr, "failed to join multicast group");
             }
         }
+        info!("started");
     }
 
     // Convert to tokio socket for async tasks

@@ -110,6 +110,9 @@ async fn handle_request(
                             action_name,
                             returns.pairs().len()
                         );
+                        for (k, v) in returns.pairs() {
+                            tracing::trace!("  return: {} = {}", k, v);
+                        }
                         (
                             StatusCode::OK,
                             build_response(&action_name, &returns.into_pairs(), &ns),
