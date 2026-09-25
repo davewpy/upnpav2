@@ -5,8 +5,11 @@
 use std::sync::Arc;
 
 use super::r#static::Channel;
+use super::{RenderingControlService, r#static::StateVariableName as RCStateVarName};
 use crate::services::renderingcontrol::traits::*;
-use crate::types::upnp::{Action, ActionArgs, ArgumentDefinition, ArgumentDirection, Error};
+use crate::types::upnp::{
+    Action, ActionArgs, ArgumentDefinition, ArgumentDirection, Error, StateValue,
+};
 
 // ===========================================================================
 // Required Actions (R)
@@ -185,12 +188,14 @@ impl<T: GetBrightness> Action for ActionGetBrightness<T> {
 
 pub struct ActionSetBrightness<T: SetBrightness> {
     trait_impl: Arc<T>,
+    service: RenderingControlService,
 }
 
 impl<T: SetBrightness> ActionSetBrightness<T> {
-    pub fn new(trait_impl: T) -> Self {
+    pub fn new(trait_impl: T, service: RenderingControlService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
+            service,
         }
     }
 }
@@ -238,6 +243,17 @@ impl<T: SetBrightness> Action for ActionSetBrightness<T> {
         self.trait_impl
             .set_brightness(input)
             .map_err(|_| Error::ActionFailed)?;
+        // Update state variable and trigger LastChange event
+        let desired = args
+            .get("DesiredBrightness")
+            .unwrap_or("0")
+            .parse::<u16>()
+            .unwrap_or(0);
+        self.service.set_state_var(
+            instance_id,
+            RCStateVarName::Brightness,
+            StateValue::Ui2(desired),
+        );
         Ok(ActionArgs::new())
     }
 }
@@ -299,12 +315,14 @@ impl<T: GetContrast> Action for ActionGetContrast<T> {
 
 pub struct ActionSetContrast<T: SetContrast> {
     trait_impl: Arc<T>,
+    service: RenderingControlService,
 }
 
 impl<T: SetContrast> ActionSetContrast<T> {
-    pub fn new(trait_impl: T) -> Self {
+    pub fn new(trait_impl: T, service: RenderingControlService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
+            service,
         }
     }
 }
@@ -352,6 +370,16 @@ impl<T: SetContrast> Action for ActionSetContrast<T> {
         self.trait_impl
             .set_contrast(input)
             .map_err(|_| Error::ActionFailed)?;
+        let desired = args
+            .get("DesiredContrast")
+            .unwrap_or("0")
+            .parse::<u16>()
+            .unwrap_or(0);
+        self.service.set_state_var(
+            instance_id,
+            RCStateVarName::Contrast,
+            StateValue::Ui2(desired),
+        );
         Ok(ActionArgs::new())
     }
 }
@@ -413,12 +441,14 @@ impl<T: GetSharpness> Action for ActionGetSharpness<T> {
 
 pub struct ActionSetSharpness<T: SetSharpness> {
     trait_impl: Arc<T>,
+    service: RenderingControlService,
 }
 
 impl<T: SetSharpness> ActionSetSharpness<T> {
-    pub fn new(trait_impl: T) -> Self {
+    pub fn new(trait_impl: T, service: RenderingControlService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
+            service,
         }
     }
 }
@@ -466,6 +496,16 @@ impl<T: SetSharpness> Action for ActionSetSharpness<T> {
         self.trait_impl
             .set_sharpness(input)
             .map_err(|_| Error::ActionFailed)?;
+        let desired = args
+            .get("DesiredSharpness")
+            .unwrap_or("0")
+            .parse::<u16>()
+            .unwrap_or(0);
+        self.service.set_state_var(
+            instance_id,
+            RCStateVarName::Sharpness,
+            StateValue::Ui2(desired),
+        );
         Ok(ActionArgs::new())
     }
 }
@@ -475,7 +515,7 @@ impl<T: SetSharpness> Action for ActionSetSharpness<T> {
 // ===========================================================================
 
 macro_rules! impl_video_color {
-    ($prefixed_get:ident, $get_trait:ident, $get_input:ident, $output_name:ident, $method_get:ident, $prefixed_set:ident, $set_trait:ident, $set_input:ident, $method_set:ident, $arg_name:expr, $soap_name:expr, $field_name:ident, $desired_field:ident, $state_var:expr) => {
+    ($prefixed_get:ident, $get_trait:ident, $get_input:ident, $output_name:ident, $method_get:ident, $prefixed_set:ident, $set_trait:ident, $set_input:ident, $method_set:ident, $arg_name:expr, $soap_name:expr, $field_name:ident, $desired_field:ident, $state_var:expr, $state_var_enum:ident) => {
         pub struct $prefixed_get<T: $get_trait> {
             trait_impl: Arc<T>,
         }
@@ -532,12 +572,14 @@ macro_rules! impl_video_color {
 
         pub struct $prefixed_set<T: $set_trait> {
             trait_impl: Arc<T>,
+            service: RenderingControlService,
         }
 
         impl<T: $set_trait> $prefixed_set<T> {
-            pub fn new(trait_impl: T) -> Self {
+            pub fn new(trait_impl: T, service: RenderingControlService) -> Self {
                 Self {
                     trait_impl: Arc::new(trait_impl),
+                    service,
                 }
             }
         }
@@ -585,6 +627,12 @@ macro_rules! impl_video_color {
                 self.trait_impl
                     .$method_set(input)
                     .map_err(|_| Error::ActionFailed)?;
+                // Update state variable and trigger LastChange event
+                self.service.set_state_var(
+                    instance_id,
+                    RCStateVarName::$state_var_enum,
+                    StateValue::Ui2(desired),
+                );
                 Ok(ActionArgs::new())
             }
         }
@@ -605,7 +653,8 @@ impl_video_color!(
     "CurrentRedVideoGain",
     current_red_video_gain,
     desired_red_video_gain,
-    "RedVideoGain"
+    "RedVideoGain",
+    RedVideoGain
 );
 impl_video_color!(
     ActionGetGreenVideoGain,
@@ -621,7 +670,8 @@ impl_video_color!(
     "CurrentGreenVideoGain",
     current_green_video_gain,
     desired_green_video_gain,
-    "GreenVideoGain"
+    "GreenVideoGain",
+    GreenVideoGain
 );
 impl_video_color!(
     ActionGetBlueVideoGain,
@@ -637,7 +687,8 @@ impl_video_color!(
     "CurrentBlueVideoGain",
     current_blue_video_gain,
     desired_blue_video_gain,
-    "BlueVideoGain"
+    "BlueVideoGain",
+    BlueVideoGain
 );
 impl_video_color!(
     ActionGetRedVideoBlackLevel,
@@ -653,7 +704,8 @@ impl_video_color!(
     "CurrentRedVideoBlackLevel",
     current_red_video_black_level,
     desired_red_video_black_level,
-    "RedVideoBlackLevel"
+    "RedVideoBlackLevel",
+    RedVideoBlackLevel
 );
 impl_video_color!(
     ActionGetGreenVideoBlackLevel,
@@ -669,7 +721,8 @@ impl_video_color!(
     "CurrentGreenVideoBlackLevel",
     current_green_video_black_level,
     desired_green_video_black_level,
-    "GreenVideoBlackLevel"
+    "GreenVideoBlackLevel",
+    GreenVideoBlackLevel
 );
 impl_video_color!(
     ActionGetBlueVideoBlackLevel,
@@ -685,7 +738,8 @@ impl_video_color!(
     "CurrentBlueVideoBlackLevel",
     current_blue_video_black_level,
     desired_blue_video_black_level,
-    "BlueVideoBlackLevel"
+    "BlueVideoBlackLevel",
+    BlueVideoBlackLevel
 );
 
 // ===========================================================================
@@ -749,12 +803,14 @@ impl<T: GetColorTemperature> Action for ActionGetColorTemperature<T> {
 
 pub struct ActionSetColorTemperature<T: SetColorTemperature> {
     trait_impl: Arc<T>,
+    service: RenderingControlService,
 }
 
 impl<T: SetColorTemperature> ActionSetColorTemperature<T> {
-    pub fn new(trait_impl: T) -> Self {
+    pub fn new(trait_impl: T, service: RenderingControlService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
+            service,
         }
     }
 }
@@ -802,6 +858,11 @@ impl<T: SetColorTemperature> Action for ActionSetColorTemperature<T> {
         self.trait_impl
             .set_color_temperature(input)
             .map_err(|_| Error::ActionFailed)?;
+        self.service.set_state_var(
+            instance_id,
+            RCStateVarName::ColorTemperature,
+            StateValue::Ui2(desired),
+        );
         Ok(ActionArgs::new())
     }
 }
@@ -863,12 +924,14 @@ impl<T: GetHorizontalKeystone> Action for ActionGetHorizontalKeystone<T> {
 
 pub struct ActionSetHorizontalKeystone<T: SetHorizontalKeystone> {
     trait_impl: Arc<T>,
+    service: RenderingControlService,
 }
 
 impl<T: SetHorizontalKeystone> ActionSetHorizontalKeystone<T> {
-    pub fn new(trait_impl: T) -> Self {
+    pub fn new(trait_impl: T, service: RenderingControlService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
+            service,
         }
     }
 }
@@ -916,6 +979,11 @@ impl<T: SetHorizontalKeystone> Action for ActionSetHorizontalKeystone<T> {
         self.trait_impl
             .set_horizontal_keystone(input)
             .map_err(|_| Error::ActionFailed)?;
+        self.service.set_state_var(
+            instance_id,
+            RCStateVarName::HorizontalKeystone,
+            StateValue::I2(desired),
+        );
         Ok(ActionArgs::new())
     }
 }
@@ -977,12 +1045,14 @@ impl<T: GetVerticalKeystone> Action for ActionGetVerticalKeystone<T> {
 
 pub struct ActionSetVerticalKeystone<T: SetVerticalKeystone> {
     trait_impl: Arc<T>,
+    service: RenderingControlService,
 }
 
 impl<T: SetVerticalKeystone> ActionSetVerticalKeystone<T> {
-    pub fn new(trait_impl: T) -> Self {
+    pub fn new(trait_impl: T, service: RenderingControlService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
+            service,
         }
     }
 }
@@ -1030,6 +1100,11 @@ impl<T: SetVerticalKeystone> Action for ActionSetVerticalKeystone<T> {
         self.trait_impl
             .set_vertical_keystone(input)
             .map_err(|_| Error::ActionFailed)?;
+        self.service.set_state_var(
+            instance_id,
+            RCStateVarName::VerticalKeystone,
+            StateValue::I2(desired),
+        );
         Ok(ActionArgs::new())
     }
 }
@@ -1104,12 +1179,14 @@ impl<T: GetMute> Action for ActionGetMute<T> {
 
 pub struct ActionSetMute<T: SetMute> {
     trait_impl: Arc<T>,
+    service: RenderingControlService,
 }
 
 impl<T: SetMute> ActionSetMute<T> {
-    pub fn new(trait_impl: T) -> Self {
+    pub fn new(trait_impl: T, service: RenderingControlService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
+            service,
         }
     }
 }
@@ -1152,11 +1229,12 @@ impl<T: SetMute> Action for ActionSetMute<T> {
             .unwrap_or(0);
         let channel_str = args.get("Channel").unwrap_or("Master");
         let channel = Channel::from_str(channel_str).unwrap_or(Channel::Master);
-        let desired = args
-            .get("DesiredMute")
-            .ok_or(Error::ArgumentValueInvalid)?
-            .parse::<bool>()
-            .map_err(|_| Error::ArgumentValueInvalid)?;
+        // UPnP SOAP sends Boolean as "0"/"1", not "true"/"false"
+        let desired = match args.get("DesiredMute") {
+            Some("0") => false,
+            Some("1") => true,
+            Some(_) | None => return Err(Error::ArgumentValueInvalid),
+        };
         let input = SetMuteInput {
             instance_id,
             channel,
@@ -1165,6 +1243,11 @@ impl<T: SetMute> Action for ActionSetMute<T> {
         self.trait_impl
             .set_mute(input)
             .map_err(|_| Error::ActionFailed)?;
+        self.service.set_state_var(
+            instance_id,
+            RCStateVarName::Mute,
+            StateValue::Boolean(desired),
+        );
         Ok(ActionArgs::new())
     }
 }
@@ -1238,12 +1321,14 @@ impl<T: GetVolume> Action for ActionGetVolume<T> {
 
 pub struct ActionSetVolume<T: SetVolume> {
     trait_impl: Arc<T>,
+    service: RenderingControlService,
 }
 
 impl<T: SetVolume> ActionSetVolume<T> {
-    pub fn new(trait_impl: T) -> Self {
+    pub fn new(trait_impl: T, service: RenderingControlService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
+            service,
         }
     }
 }
@@ -1299,6 +1384,11 @@ impl<T: SetVolume> Action for ActionSetVolume<T> {
         self.trait_impl
             .set_volume(input)
             .map_err(|_| Error::ActionFailed)?;
+        self.service.set_state_var(
+            instance_id,
+            RCStateVarName::Volume,
+            StateValue::Ui2(desired),
+        );
         Ok(ActionArgs::new())
     }
 }
@@ -1338,7 +1428,7 @@ impl<T: GetVolumeDB> Action for ActionGetVolumeDB<T> {
 
     fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
         static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
-            name: "CurrentVolumeDB",
+            name: "CurrentVolume",
             direction: ArgumentDirection::OUT,
             related_state_var: Some("VolumeDB"),
         }];
@@ -1363,7 +1453,7 @@ impl<T: GetVolumeDB> Action for ActionGetVolumeDB<T> {
             .map_err(|_| Error::ActionFailed)?;
         let mut out = ActionArgs::new();
         out.set(
-            "CurrentVolumeDB".to_string(),
+            "CurrentVolume".to_string(),
             output.current_volume_db.to_string(),
         );
         Ok(out)
@@ -1471,11 +1561,18 @@ impl<T: GetVolumeDBRange> Action for ActionGetVolumeDBRange<T> {
     }
 
     fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
-            name: "CurrentVolumeDBRange",
-            direction: ArgumentDirection::OUT,
-            related_state_var: Some("VolumeDB"),
-        }];
+        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
+            ArgumentDefinition {
+                name: "MinValue",
+                direction: ArgumentDirection::OUT,
+                related_state_var: Some("VolumeDB"),
+            },
+            ArgumentDefinition {
+                name: "MaxValue",
+                direction: ArgumentDirection::OUT,
+                related_state_var: Some("VolumeDB"),
+            },
+        ];
         &ARGS
     }
 
@@ -1496,10 +1593,8 @@ impl<T: GetVolumeDBRange> Action for ActionGetVolumeDBRange<T> {
             .get_volume_db_range(input)
             .map_err(|_| Error::ActionFailed)?;
         let mut out = ActionArgs::new();
-        out.set(
-            "CurrentVolumeDBRange".to_string(),
-            format!("{}/{}", output.minimum_value, output.maximum_value),
-        );
+        out.set("MinValue".to_string(), output.minimum_value.to_string());
+        out.set("MaxValue".to_string(), output.maximum_value.to_string());
         Ok(out)
     }
 }
@@ -1621,11 +1716,12 @@ impl<T: SetLoudness> Action for ActionSetLoudness<T> {
             .unwrap_or(0);
         let channel_str = args.get("Channel").unwrap_or("Master");
         let channel = Channel::from_str(channel_str).unwrap_or(Channel::Master);
-        let desired = args
-            .get("DesiredLoudness")
-            .ok_or(Error::ArgumentValueInvalid)?
-            .parse::<bool>()
-            .map_err(|_| Error::ArgumentValueInvalid)?;
+        // UPnP SOAP sends Boolean as "0"/"1", not "true"/"false"
+        let desired = match args.get("DesiredLoudness") {
+            Some("0") => false,
+            Some("1") => true,
+            Some(_) | None => return Err(Error::ArgumentValueInvalid),
+        };
         let input = SetLoudnessInput {
             instance_id,
             channel,

@@ -379,14 +379,16 @@ impl crate::state::StateVariableName for StateVariableName {
     }
 
     fn is_evented(&self) -> bool {
-        // SourceProtocolInfo, SinkProtocolInfo, CurrentConnectionIDs, DeviceClockInfoUpdates are evented
-        matches!(
-            self,
-            Self::SourceProtocolInfo
-                | Self::SinkProtocolInfo
-                | Self::CurrentConnectionIDs
-                | Self::DeviceClockInfoUpdates
-        )
+        // Per UPnP-av-ConnectionManager-v3 spec §4.2:
+        // Only DeviceClockInfoUpdates sends direct GENA NOTIFY (is_evented=YES, via_lastchange=—).
+        matches!(self, Self::DeviceClockInfoUpdates)
+    }
+
+    fn via_lastchange(&self) -> bool {
+        // ConnectionManager has NO state variables that are indirectly evented via LastChange.
+        // All other vars (SourceProtocolInfo, SinkProtocolInfo, CurrentConnectionIDs,
+        // FeatureList, ClockUpdateID) are NOT evented at all (NO/NO).
+        false
     }
 
     fn is_instance_scoped(&self) -> bool {
@@ -394,24 +396,24 @@ impl crate::state::StateVariableName for StateVariableName {
         false
     }
 
-    fn data_type(&self) -> crate::types::upnp::DataType {
+    fn data_type_name(&self) -> &'static str {
         match self {
-            Self::SourceProtocolInfo => crate::types::upnp::DataType::String,
-            Self::SinkProtocolInfo => crate::types::upnp::DataType::String,
-            Self::CurrentConnectionIDs => crate::types::upnp::DataType::String,
-            Self::FeatureList => crate::types::upnp::DataType::String,
-            Self::ClockUpdateID => crate::types::upnp::DataType::UnsignedInt,
-            Self::DeviceClockInfoUpdates => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_ConnectionStatus => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_ConnectionManager => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_Direction => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_ProtocolInfo => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_ConnectionID => crate::types::upnp::DataType::UnsignedInt,
-            Self::A_ARG_TYPE_AVTransportID => crate::types::upnp::DataType::UnsignedInt,
-            Self::A_ARG_TYPE_RcsID => crate::types::upnp::DataType::UnsignedInt,
-            Self::A_ARG_TYPE_ItemInfoFilter => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_Result => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_RenderingInfoList => crate::types::upnp::DataType::String,
+            Self::SourceProtocolInfo => "string",
+            Self::SinkProtocolInfo => "string",
+            Self::CurrentConnectionIDs => "string",
+            Self::FeatureList => "string",
+            Self::ClockUpdateID => "ui4",
+            Self::DeviceClockInfoUpdates => "string",
+            Self::A_ARG_TYPE_ConnectionStatus => "string",
+            Self::A_ARG_TYPE_ConnectionManager => "string",
+            Self::A_ARG_TYPE_Direction => "string",
+            Self::A_ARG_TYPE_ProtocolInfo => "string",
+            Self::A_ARG_TYPE_ConnectionID => "ui4",
+            Self::A_ARG_TYPE_AVTransportID => "ui4",
+            Self::A_ARG_TYPE_RcsID => "ui4",
+            Self::A_ARG_TYPE_ItemInfoFilter => "string",
+            Self::A_ARG_TYPE_Result => "string",
+            Self::A_ARG_TYPE_RenderingInfoList => "string",
         }
     }
 }

@@ -6,9 +6,10 @@ pub use r#static::{ActionName, ArgumentName, Error, StateVariableName};
 pub use traits::*;
 
 use crate::gena::EventPublisher;
+use crate::state::StateVariableName as StateVariableNameTrait;
 use crate::{
     renderingcontrol::r#static::V3,
-    types::upnp::{Action, ActionMap, Services, StateSchema, StateStore, StateValue},
+    types::upnp::{Action, ActionMap, DataType as StateValue, Services, StateSchema, StateStore},
 };
 use std::sync::Arc;
 
@@ -20,6 +21,7 @@ use std::sync::Arc;
 ///
 /// State variables are initialized in `init_state_vars()` and owned by this struct.
 /// When state changes via `set_state_var()`, the service automatically triggers GENA events.
+#[derive(Clone)]
 pub struct RenderingControlService {
     actions: Arc<std::sync::Mutex<ActionMap>>,
     state_store: Arc<std::sync::Mutex<StateStore<r#static::StateVariableName>>>,
@@ -43,7 +45,9 @@ impl RenderingControlService {
         let mut state_store = StateStore::new();
         Self::init_state_vars(&mut state_store);
         Self {
-            actions: Arc::new(std::sync::Mutex::new(ActionMap::new(Services::RenderingControl(V3)))),
+            actions: Arc::new(std::sync::Mutex::new(ActionMap::new(
+                Services::RenderingControl(V3),
+            ))),
             state_store: Arc::new(std::sync::Mutex::new(state_store)),
             event_publisher: Arc::new(std::sync::Mutex::new(publisher)),
         }
@@ -66,8 +70,6 @@ impl RenderingControlService {
         // LastChange — only evented variable
         state_store.register(StateSchema {
             name: StateVariableName::LastChange,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: true,
             default: StateValue::String(String::new()),
             ..Default::default()
         });
@@ -75,8 +77,6 @@ impl RenderingControlService {
         // PresetNameList
         state_store.register(StateSchema {
             name: StateVariableName::PresetNameList,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("FactoryDefaults".to_string()),
             ..Default::default()
         });
@@ -84,8 +84,6 @@ impl RenderingControlService {
         // Brightness — ui2 [0..255]
         state_store.register(StateSchema {
             name: StateVariableName::Brightness,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(128),
             allowed_value_range: Some(("0".to_string(), "255".to_string(), "1".to_string())),
             ..Default::default()
@@ -94,8 +92,6 @@ impl RenderingControlService {
         // Contrast — ui2 [0..255]
         state_store.register(StateSchema {
             name: StateVariableName::Contrast,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(128),
             allowed_value_range: Some(("0".to_string(), "255".to_string(), "1".to_string())),
             ..Default::default()
@@ -104,8 +100,6 @@ impl RenderingControlService {
         // Sharpness — ui2 [0..255]
         state_store.register(StateSchema {
             name: StateVariableName::Sharpness,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(128),
             allowed_value_range: Some(("0".to_string(), "255".to_string(), "1".to_string())),
             ..Default::default()
@@ -114,8 +108,6 @@ impl RenderingControlService {
         // RedVideoGain — ui2 [0..vendor-max]
         state_store.register(StateSchema {
             name: StateVariableName::RedVideoGain,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(0),
             allowed_value_range: Some(("0".to_string(), "65535".to_string(), "1".to_string())),
             ..Default::default()
@@ -124,8 +116,6 @@ impl RenderingControlService {
         // GreenVideoGain — ui2 [0..vendor-max]
         state_store.register(StateSchema {
             name: StateVariableName::GreenVideoGain,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(0),
             allowed_value_range: Some(("0".to_string(), "65535".to_string(), "1".to_string())),
             ..Default::default()
@@ -134,8 +124,6 @@ impl RenderingControlService {
         // BlueVideoGain — ui2 [0..vendor-max]
         state_store.register(StateSchema {
             name: StateVariableName::BlueVideoGain,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(0),
             allowed_value_range: Some(("0".to_string(), "65535".to_string(), "1".to_string())),
             ..Default::default()
@@ -144,8 +132,6 @@ impl RenderingControlService {
         // RedVideoBlackLevel — ui2 [0..vendor-max]
         state_store.register(StateSchema {
             name: StateVariableName::RedVideoBlackLevel,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(0),
             allowed_value_range: Some(("0".to_string(), "65535".to_string(), "1".to_string())),
             ..Default::default()
@@ -154,8 +140,6 @@ impl RenderingControlService {
         // GreenVideoBlackLevel — ui2 [0..vendor-max]
         state_store.register(StateSchema {
             name: StateVariableName::GreenVideoBlackLevel,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(0),
             allowed_value_range: Some(("0".to_string(), "65535".to_string(), "1".to_string())),
             ..Default::default()
@@ -164,8 +148,6 @@ impl RenderingControlService {
         // BlueVideoBlackLevel — ui2 [0..vendor-max]
         state_store.register(StateSchema {
             name: StateVariableName::BlueVideoBlackLevel,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(0),
             allowed_value_range: Some(("0".to_string(), "65535".to_string(), "1".to_string())),
             ..Default::default()
@@ -174,8 +156,6 @@ impl RenderingControlService {
         // ColorTemperature — ui2 [0..vendor-max]
         state_store.register(StateSchema {
             name: StateVariableName::ColorTemperature,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(0),
             allowed_value_range: Some(("0".to_string(), "65535".to_string(), "1".to_string())),
             ..Default::default()
@@ -184,8 +164,6 @@ impl RenderingControlService {
         // HorizontalKeystone — i2 [vendor-min(≤0)..vendor-max]
         state_store.register(StateSchema {
             name: StateVariableName::HorizontalKeystone,
-            data_type: crate::types::upnp::DataType::Short,
-            send_events: false,
             default: StateValue::I2(0),
             allowed_value_range: Some(("-32768".to_string(), "32767".to_string(), "1".to_string())),
             ..Default::default()
@@ -194,8 +172,6 @@ impl RenderingControlService {
         // VerticalKeystone — i2 [vendor-min(≤0)..vendor-max]
         state_store.register(StateSchema {
             name: StateVariableName::VerticalKeystone,
-            data_type: crate::types::upnp::DataType::Short,
-            send_events: false,
             default: StateValue::I2(0),
             allowed_value_range: Some(("-32768".to_string(), "32767".to_string(), "1".to_string())),
             ..Default::default()
@@ -204,8 +180,6 @@ impl RenderingControlService {
         // Mute — boolean
         state_store.register(StateSchema {
             name: StateVariableName::Mute,
-            data_type: crate::types::upnp::DataType::Boolean,
-            send_events: false,
             default: StateValue::Boolean(false),
             ..Default::default()
         });
@@ -213,8 +187,6 @@ impl RenderingControlService {
         // Volume — ui2 [0..vendor-max]
         state_store.register(StateSchema {
             name: StateVariableName::Volume,
-            data_type: crate::types::upnp::DataType::UnsignedShort,
-            send_events: false,
             default: StateValue::Ui2(50),
             allowed_value_range: Some(("0".to_string(), "65535".to_string(), "1".to_string())),
             ..Default::default()
@@ -225,8 +197,6 @@ impl RenderingControlService {
         // 0x8000 is invalid. Example: -72 dB = 0xB800 = -29491
         state_store.register(StateSchema {
             name: StateVariableName::VolumeDB,
-            data_type: crate::types::upnp::DataType::Short,
-            send_events: false,
             default: StateValue::I2(0),
             allowed_value_range: Some(("-32767".to_string(), "32767".to_string(), "1".to_string())),
             ..Default::default()
@@ -235,8 +205,6 @@ impl RenderingControlService {
         // Loudness — boolean
         state_store.register(StateSchema {
             name: StateVariableName::Loudness,
-            data_type: crate::types::upnp::DataType::Boolean,
-            send_events: false,
             default: StateValue::Boolean(false),
             ..Default::default()
         });
@@ -244,8 +212,6 @@ impl RenderingControlService {
         // AllowedTransformSettings — string (XML)
         state_store.register(StateSchema {
             name: StateVariableName::AllowedTransformSettings,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
@@ -253,8 +219,6 @@ impl RenderingControlService {
         // TransformSettings — string (XML)
         state_store.register(StateSchema {
             name: StateVariableName::TransformSettings,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
@@ -262,8 +226,6 @@ impl RenderingControlService {
         // AllowedDefaultTransformSettings — string (XML), directly evented per spec §7.1
         state_store.register(StateSchema {
             name: StateVariableName::AllowedDefaultTransformSettings,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: true,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
@@ -271,8 +233,6 @@ impl RenderingControlService {
         // DefaultTransformSettings — string (XML), directly evented per spec §7.1
         state_store.register(StateSchema {
             name: StateVariableName::DefaultTransformSettings,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: true,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
@@ -284,8 +244,6 @@ impl RenderingControlService {
         // A_ARG_TYPE_InstanceID — ui4, virtual RCS instance
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_InstanceID,
-            data_type: crate::types::upnp::DataType::UnsignedInt,
-            send_events: false,
             default: StateValue::Ui4(0),
             argument_type: true,
             ..Default::default()
@@ -294,8 +252,6 @@ impl RenderingControlService {
         // A_ARG_TYPE_Channel — audio channel name
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_Channel,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             allowed_values: Some(vec![
                 "Master".to_string(),
@@ -323,8 +279,6 @@ impl RenderingControlService {
         // A_ARG_TYPE_PresetName — preset name
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_PresetName,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             allowed_values: Some(vec![
                 "FactoryDefaults".to_string(),
@@ -337,8 +291,6 @@ impl RenderingControlService {
         // A_ARG_TYPE_DeviceUDN — MediaRenderer UDN
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_DeviceUDN,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -347,8 +299,6 @@ impl RenderingControlService {
         // A_ARG_TYPE_ServiceType — service type string (e.g., "RenderingControl:3")
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_ServiceType,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -357,8 +307,6 @@ impl RenderingControlService {
         // A_ARG_TYPE_ServiceID — service ID string
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_ServiceID,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -367,8 +315,6 @@ impl RenderingControlService {
         // A_ARG_TYPE_StateVariableValuePairs — XML structure
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_StateVariableValuePairs,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -377,8 +323,6 @@ impl RenderingControlService {
         // A_ARG_TYPE_StateVariableList — CSV of state variable names
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_StateVariableList,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -413,44 +357,60 @@ impl RenderingControlService {
         store.get_mut_owned(name)
     }
 
-    /// Set a state variable value. Returns error if validation fails.
+    /// Set any state variable at a specific InstanceID.
     ///
-    /// If the value actually changed, automatically triggers GENA events for all evented state variables.
+    /// This is the single gatekeeper method for all state mutations. It:
+    /// 1. Sets the value in StateStore (uses set_instance if var is instance-scoped)
+    /// 2. Triggers GENA events via LastChange NOTIFY
+    ///
+    /// Per UPnP-av-2.0 spec, InstanceID=0 is global/post-mix, InstanceID>0 is per-stream.
+    /// RenderingControl state variables are all per-InstanceID (is_instance_scoped=true).
+    ///
+    /// Writing the same value does NOT set has_changes (per UPnP spec).
     pub fn set_state_var(
-        &mut self,
+        &self,
+        instance_id: u32,
         name: r#static::StateVariableName,
-        value: String,
-    ) -> Result<(), crate::types::upnp::Error> {
-        {
-            let mut store = self.state_store.lock().unwrap();
-            store.set(name, StateValue::String(value))?;
+        value: StateValue,
+    ) {
+        let mut store = self.state_store.lock().unwrap();
+
+        if name.is_instance_scoped() {
+            store.set_instance(name, instance_id, value);
+        } else {
+            store.set(name, value);
         }
-        self.trigger_events();
-        Ok(())
+        drop(store);
+
+        self.trigger_events_for_instance(instance_id);
     }
 
-    /// Build the LastChange XML propertyset from all evented state variables.
-    fn build_last_change(&self) -> String {
+    /// Build the LastChange XML propertyset from all evented state variables for an instance.
+    fn build_last_change(&self, instance_id: u32) -> String {
         let store = self.state_store.lock().unwrap();
-        let evented = store.collect_evented();
+        let evented = store.collect_evented_for_instance(instance_id);
         crate::services::lastchange::build_last_change(
             "urn:schemas-upnp-org:metadata-1-0/RC/",
             &evented,
         )
     }
 
-    /// Trigger GENA events for all evented state variables.
-    fn trigger_events(&mut self) {
-        let last_change_xml = self.build_last_change();
+    /// Trigger GENA events for all evented state variables at a specific InstanceID.
+    fn trigger_events_for_instance(&self, instance_id: u32) {
+        let last_change_xml = self.build_last_change(instance_id);
 
-        let mut store = self.state_store.lock().unwrap();
-        if let Some(last_change_var) = store.get_mut(r#static::StateVariableName::LastChange) {
-            last_change_var.current_value = StateValue::String(last_change_xml);
+        // Update LastChange state variable (global, not per-instance)
+        {
+            let mut store = self.state_store.lock().unwrap();
+            if let Some(last_change_var) = store.get_mut(r#static::StateVariableName::LastChange) {
+                last_change_var.current_value = StateValue::String(last_change_xml.clone());
+            }
         }
 
-        let evented = store.collect_evented();
+        // Notify all subscribers with LastChange property
+        let properties = vec![("LastChange".to_string(), last_change_xml)];
         let mut publisher = self.event_publisher.lock().unwrap();
-        let _results = publisher.notify(&evented);
+        let _results = publisher.notify(&properties);
     }
 
     /// Get all state variable names (for SCPD generation).

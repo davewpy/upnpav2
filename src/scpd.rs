@@ -377,7 +377,7 @@ impl<S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariabl
             if let Some(def) = store.schema(&name) {
                 // Filter: only emit if referenced by an action, evented, or A_ARG_TYPE
                 let is_referenced = referenced_vars.contains(&name.to_string());
-                let is_evented = def.send_events;
+                let is_evented = def.name.is_evented() || def.name.via_lastchange();
                 let is_arg_type = def.argument_type;
 
                 if !is_referenced && !is_evented && !is_arg_type {
@@ -385,21 +385,21 @@ impl<S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariabl
                 }
 
                 xml.push_str("    <stateVariable");
-                if def.send_events {
+                if def.name.is_evented() || def.name.via_lastchange() {
                     xml.push_str(" sendEvents=\"yes\"");
                 }
                 xml.push_str(">\n");
                 xml.push_str(&format!("      <name>{}</name>\n", name));
                 xml.push_str(&format!(
                     "      <dataType>{}</dataType>\n",
-                    def.data_type.as_str()
+                    def.name.data_type_name()
                 ));
 
                 // A_ARG_TYPE variables are type definitions — no defaultValue
                 if !def.argument_type {
                     xml.push_str(&format!(
                         "      <defaultValue>{}</defaultValue>\n",
-                        escape_xml(&def.default.as_str())
+                        escape_xml(&def.default.as_value_str())
                     ));
                 }
 

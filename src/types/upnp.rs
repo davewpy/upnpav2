@@ -148,51 +148,55 @@ impl Services {
 }
 
 /// UPnP standard data types (UPnP-av-2.0 spec §4.2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+///
+/// Unified enum: each variant carries both the type tag AND its value.
+/// At compile-time, the variant name is the type; at runtime, the inner field is the value.
+#[derive(Debug, Clone, PartialEq)]
 pub enum DataType {
-    UnsignedByte,  // ui1
-    UnsignedShort, // ui2
-    UnsignedInt,   // ui4
-    Int8,          // i1
-    Short,         // i2
-    Int,           // i4
-    Long,          // i8
-    Float,         // r4 / float
-    Double,        // r8
-    Decimal,       // number
-    Char,          // char
-    String,        // string
-    Date,          // date
-    DateTime,      // dateTime
-    Boolean,       // boolean
-    Base64,        // bin.base64
-    HexBinary,     // bin.hex
-    Uri,           // uri
-    Uuid,          // uuid
+    Ui1(u8),       // ui1
+    Ui2(u16),      // ui2
+    Ui4(u32),      // ui4
+    I1(i8),        // i1
+    I2(i16),       // i2
+    I4(i32),       // i4
+    I8(i64),       // i8
+    Float(f32),    // r4 / float
+    Double(f64),   // r8
+    Decimal(String),
+    Char(char),
+    String(String),
+    Date(String),
+    DateTime(String),
+    Boolean(bool),
+    Base64(String),
+    HexBinary(String),
+    Uri(String),
+    Uuid(String),
 }
 
 impl DataType {
+    /// Returns the UPnP wire-format type name for SCPD XML generation.
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::UnsignedByte => "ui1",
-            Self::UnsignedShort => "ui2",
-            Self::UnsignedInt => "ui4",
-            Self::Int8 => "i1",
-            Self::Short => "i2",
-            Self::Int => "i4",
-            Self::Long => "i8",
-            Self::Float => "r4",
-            Self::Double => "r8",
-            Self::Decimal => "number",
-            Self::Char => "char",
-            Self::String => "string",
-            Self::Date => "date",
-            Self::DateTime => "dateTime",
-            Self::Boolean => "boolean",
-            Self::Base64 => "bin.base64",
-            Self::HexBinary => "bin.hex",
-            Self::Uri => "uri",
-            Self::Uuid => "uuid",
+            Self::Ui1(_) => "ui1",
+            Self::Ui2(_) => "ui2",
+            Self::Ui4(_) => "ui4",
+            Self::I1(_) => "i1",
+            Self::I2(_) => "i2",
+            Self::I4(_) => "i4",
+            Self::I8(_) => "i8",
+            Self::Float(_) => "r4",
+            Self::Double(_) => "r8",
+            Self::Decimal(_) => "number",
+            Self::Char(_) => "char",
+            Self::String(_) => "string",
+            Self::Date(_) => "date",
+            Self::DateTime(_) => "dateTime",
+            Self::Boolean(_) => "boolean",
+            Self::Base64(_) => "bin.base64",
+            Self::HexBinary(_) => "bin.hex",
+            Self::Uri(_) => "uri",
+            Self::Uuid(_) => "uuid",
         }
     }
 }
@@ -292,37 +296,22 @@ pub struct ActionDefinition<A, Arg, S> {
 }
 
 // ---------------------------------------------------------------------------
-// StateValue — typed state variable value
+// DataType — unified type + value enum
 // ---------------------------------------------------------------------------
 
-/// A single state variable value with UPnP data type.
-#[derive(Debug, Clone, PartialEq)]
-pub enum StateValue {
-    Ui1(u8),
-    Ui2(u16),
-    Ui4(u32),
-    I1(i8),
-    I2(i16),
-    I4(i32),
-    I8(i64),
-    Float(f32),
-    Double(f64),
-    Decimal(String),
-    Char(char),
-    String(String),
-    Date(String),
-    DateTime(String),
-    Boolean(bool),
-    Base64(String),
-    HexBinary(String),
-    Uri(String),
-    Uuid(String),
-    Xml(String),
-}
+/// Unified UPnP data type and value.
+///
+/// Each variant encodes both the UPnP wire type (variant name) and its runtime value (inner field).
+/// This replaces the previous two-enum design where `DataType` was a type tag and `StateValue`
+/// carried values — they had a 1:1 mapping, so consolidation eliminates redundancy.
+///
+/// Type-tag usage (SCPD XML generation): pass an empty/default value.
+/// Value usage (state store): pass the actual value.
+pub use DataType as StateValue;
 
-impl StateValue {
+impl DataType {
     /// Convert to UPnP string representation for SOAP/LastChange.
-    pub fn as_str(&self) -> String {
+    pub fn as_value_str(&self) -> String {
         match self {
             Self::Ui1(v) => v.to_string(),
             Self::Ui2(v) => v.to_string(),
@@ -349,153 +338,74 @@ impl StateValue {
             Self::HexBinary(v) => v.clone(),
             Self::Uri(v) => v.clone(),
             Self::Uuid(v) => v.clone(),
-            Self::Xml(v) => v.clone(),
-        }
-    }
-
-    /// Validate value against its expected DataType.
-    pub fn validate(&self, expected_type: DataType) -> Result<(), Error> {
-        match (self, expected_type) {
-            (Self::Ui1(_), DataType::UnsignedByte) => Ok(()),
-            (Self::Ui2(_), DataType::UnsignedShort) => Ok(()),
-            (Self::Ui4(_), DataType::UnsignedInt) => Ok(()),
-            (Self::I1(_), DataType::Int8) => Ok(()),
-            (Self::I2(_), DataType::Short) => Ok(()),
-            (Self::I4(_), DataType::Int) => Ok(()),
-            (Self::I8(_), DataType::Long) => Ok(()),
-            (Self::Float(_), DataType::Float) => Ok(()),
-            (Self::Double(_), DataType::Double) => Ok(()),
-            (Self::Decimal(_), DataType::Decimal) => Ok(()),
-            (Self::Char(_), DataType::Char) => Ok(()),
-            (Self::String(_), DataType::String) => Ok(()),
-            (Self::Date(_), DataType::Date) => Ok(()),
-            (Self::DateTime(_), DataType::DateTime) => Ok(()),
-            (Self::Boolean(_), DataType::Boolean) => Ok(()),
-            (Self::Base64(_), DataType::Base64) => Ok(()),
-            (Self::HexBinary(_), DataType::HexBinary) => Ok(()),
-            (Self::Uri(_), DataType::Uri) => Ok(()),
-            (Self::Uuid(_), DataType::Uuid) => Ok(()),
-            (Self::Xml(_), DataType::String) => Ok(()),
-            _ => Err(Error::ArgumentValueInvalid),
-        }
-    }
-
-    /// Convert DataType to the matching StateValue variant (with default value).
-    pub fn from_default(data_type: DataType) -> Self {
-        match data_type {
-            DataType::UnsignedByte => Self::Ui1(0),
-            DataType::UnsignedShort => Self::Ui2(0),
-            DataType::UnsignedInt => Self::Ui4(0),
-            DataType::Int8 => Self::I1(0),
-            DataType::Short => Self::I2(0),
-            DataType::Int => Self::I4(0),
-            DataType::Long => Self::I8(0),
-            DataType::Float => Self::Float(0.0),
-            DataType::Double => Self::Double(0.0),
-            DataType::Decimal => Self::Decimal(String::new()),
-            DataType::Char => Self::Char(' '),
-            DataType::String => Self::String(String::new()),
-            DataType::Date => Self::Date(String::new()),
-            DataType::DateTime => Self::DateTime(String::new()),
-            DataType::Boolean => Self::Boolean(false),
-            DataType::Base64 => Self::Base64(String::new()),
-            DataType::HexBinary => Self::HexBinary(String::new()),
-            DataType::Uri => Self::Uri(String::new()),
-            DataType::Uuid => Self::Uuid(String::new()),
-        }
-    }
-
-    /// Return the DataType that this StateValue variant represents.
-    pub fn data_type(&self) -> DataType {
-        match self {
-            Self::Ui1(_) => DataType::UnsignedByte,
-            Self::Ui2(_) => DataType::UnsignedShort,
-            Self::Ui4(_) => DataType::UnsignedInt,
-            Self::I1(_) => DataType::Int8,
-            Self::I2(_) => DataType::Short,
-            Self::I4(_) => DataType::Int,
-            Self::I8(_) => DataType::Long,
-            Self::Float(_) => DataType::Float,
-            Self::Double(_) => DataType::Double,
-            Self::Decimal(_) => DataType::Decimal,
-            Self::Char(_) => DataType::Char,
-            Self::String(_) => DataType::String,
-            Self::Date(_) => DataType::Date,
-            Self::DateTime(_) => DataType::DateTime,
-            Self::Boolean(_) => DataType::Boolean,
-            Self::Base64(_) => DataType::Base64,
-            Self::HexBinary(_) => DataType::HexBinary,
-            Self::Uri(_) => DataType::Uri,
-            Self::Uuid(_) => DataType::Uuid,
-            Self::Xml(_) => DataType::String,
         }
     }
 }
 
-impl From<u8> for StateValue {
+impl From<u8> for DataType {
     fn from(v: u8) -> Self {
         Self::Ui1(v)
     }
 }
-impl From<u16> for StateValue {
+impl From<u16> for DataType {
     fn from(v: u16) -> Self {
         Self::Ui2(v)
     }
 }
-impl From<u32> for StateValue {
+impl From<u32> for DataType {
     fn from(v: u32) -> Self {
         Self::Ui4(v)
     }
 }
-impl From<i8> for StateValue {
+impl From<i8> for DataType {
     fn from(v: i8) -> Self {
         Self::I1(v)
     }
 }
-impl From<i16> for StateValue {
+impl From<i16> for DataType {
     fn from(v: i16) -> Self {
         Self::I2(v)
     }
 }
-impl From<i32> for StateValue {
+impl From<i32> for DataType {
     fn from(v: i32) -> Self {
         Self::I4(v)
     }
 }
-impl From<i64> for StateValue {
+impl From<i64> for DataType {
     fn from(v: i64) -> Self {
         Self::I8(v)
     }
 }
-impl From<f32> for StateValue {
+impl From<f32> for DataType {
     fn from(v: f32) -> Self {
         Self::Float(v)
     }
 }
-impl From<f64> for StateValue {
+impl From<f64> for DataType {
     fn from(v: f64) -> Self {
         Self::Double(v)
     }
 }
-impl From<bool> for StateValue {
+impl From<bool> for DataType {
     fn from(v: bool) -> Self {
         Self::Boolean(v)
     }
 }
-impl From<String> for StateValue {
+impl From<String> for DataType {
     fn from(v: String) -> Self {
         Self::String(v)
     }
 }
-impl From<&str> for StateValue {
+impl From<&str> for DataType {
     fn from(v: &str) -> Self {
         Self::String(v.to_string())
     }
 }
 
-impl std::fmt::Display for StateValue {
+impl std::fmt::Display for DataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
+        write!(f, "{}", self.as_value_str())
     }
 }
 

@@ -18,7 +18,7 @@
 
 use std::collections::HashMap;
 
-use crate::types::upnp::{DataType, Error, StateValue};
+use crate::types::upnp::{DataType, Error};
 
 // ---------------------------------------------------------------------------
 // StateVariableName — trait for state variable name enums
@@ -28,52 +28,64 @@ use crate::types::upnp::{DataType, Error, StateValue};
 ///
 /// Implemented by each service's `StateVariableName` enum to provide:
 /// - `as_str()`: UPnP wire format name (e.g., "TransportState")
-/// - `is_evented()`: Whether this variable sends events via LastChange
+/// - `is_evented()`: Whether this variable sends events (direct or indirect) per UPnP spec
+///   (LastChange, AllowedDefaultTransformSettings, DefaultTransformSettings, DeviceClockInfoUpdates)
+/// - `via_lastchange()`: Whether this variable is indirectly evented via LastChange XML payload
 /// - `is_instance_scoped()`: Whether this variable is per-InstanceID
-/// - `data_type()`: UPnP data type for validation
+/// - `data_type_name()`: UPnP wire type name (e.g., "string", "ui4") for SCPD XML generation
+///
+/// Per UPnP AV 2.0 spec, state variables have two eventing dimensions:
+/// - `is_evented` column: YES = sends events (direct or indirect), NO = never evented
+/// - `via_lastchange` column: — = direct NOTIFY, YES = collated into LastChange XML, NO = not evented
 ///
 /// This trait enables compile-time type safety in `StateStore<S: StateVariableName>`.
 pub trait StateVariableName: std::fmt::Display + Clone + Copy {
     /// Returns the UPnP wire format name (e.g., "TransportState").
     fn as_str(&self) -> &'static str;
 
-    /// Returns true if this variable sends events via LastChange.
+    /// Returns true if this variable is evented per UPnP spec (is_evented=YES column).
+    /// Includes both direct NOTIFY vars (LastChange, AllowedDefaultTransformSettings,
+    /// DefaultTransformSettings, DeviceClockInfoUpdates) and via_lastchange vars.
     fn is_evented(&self) -> bool;
+
+    /// Returns true if this variable is indirectly evented via LastChange XML payload.
+    /// Per UPnP AV 2.0 spec: all non-position state vars with is_evented=—, via_lastchange=YES
+    /// are collated into the LastChange event document and sent as one NOTIFY.
+    fn via_lastchange(&self) -> bool;
 
     /// Returns true if this variable is scoped per InstanceID.
     /// InstanceID=0 is global/post-mix, InstanceID>0 is per-stream.
     fn is_instance_scoped(&self) -> bool;
 
-    /// Returns the UPnP data type for validation.
-    fn data_type(&self) -> DataType;
+    /// Returns the UPnP wire type name for SCPD XML generation (e.g., "string", "ui4", "boolean").
+    /// The actual value used in the DataType enum is irrelevant — only the variant matters.
+    fn data_type_name(&self) -> &'static str;
 }
 
 // ---------------------------------------------------------------------------
 // StateSchema — compile-time definition for a state variable
 // ---------------------------------------------------------------------------
 
-/// Definition of a state variable — name, type, eventing, default value.
+/// Definition of a state variable — name, default value, SCPD metadata.
 ///
 /// This is the compile-time contract that defines:
 /// - Name (typed enum variant)
-/// - Data type (UPnP wire type)
-/// - Whether it's evented (via LastChange)
 /// - Default value
 /// - Allowed value range (min, max, step)
 /// - Allowed values (fixed set)
 /// - Whether it's an A_ARG_TYPE variable (type definition, not a real state var)
+///
+/// Eventing behavior is defined in the `StateVariableName` trait methods:
+/// - `is_evented()`: direct GENA NOTIFY (LastChange, etc.)
+/// - `via_lastchange()`: collated into LastChange XML
 ///
 /// Each service registers its state variables at initialization time.
 #[derive(Debug, Clone)]
 pub struct StateSchema<S> {
     /// State variable name (typed enum variant).
     pub name: S,
-    /// UPnP data type (string, ui4, boolean, etc.).
-    pub data_type: DataType,
-    /// Whether this variable sends events (via LastChange).
-    pub send_events: bool,
     /// Default value.
-    pub default: StateValue,
+    pub default: DataType,
     /// SCPD metadata (optional, used for XML generation).
     pub allowed_values: Option<Vec<String>>,
     pub allowed_value_range: Option<(String, String, String)>,
@@ -86,9 +98,7 @@ impl<S: Default> Default for StateSchema<S> {
     fn default() -> Self {
         Self {
             name: S::default(),
-            data_type: DataType::String,
-            send_events: false,
-            default: StateValue::String(String::new()),
+            default: DataType::String(String::new()),
             allowed_values: None,
             allowed_value_range: None,
             argument_type: false,
@@ -98,16 +108,9 @@ impl<S: Default> Default for StateSchema<S> {
 
 /// Helper to create a StateSchema with optional SCPD fields.
 /// Most registrations don't need allowed_values or allowed_value_range.
-pub fn state_def<S: std::fmt::Display + Clone>(
-    name: S,
-    data_type: DataType,
-    send_events: bool,
-    default: StateValue,
-) -> StateSchema<S> {
+pub fn state_def<S: std::fmt::Display + Clone>(name: S, default: DataType) -> StateSchema<S> {
     StateSchema {
         name,
-        data_type,
-        send_events,
         default,
         allowed_values: None,
         allowed_value_range: None,
@@ -127,8 +130,8 @@ pub fn state_def<S: std::fmt::Display + Clone>(
 ///
 /// Writing the same value does NOT set `has_changes` per UPnP spec.
 pub struct StateVariable {
-    /// Current value.
-    pub current_value: StateValue,
+    /// Current value (typed via DataType enum variant).
+    pub current_value: DataType,
     /// Whether this variable has pending changes since last event.
     pub has_changes: bool,
 }
@@ -144,23 +147,22 @@ impl Clone for StateVariable {
 
 impl StateVariable {
     /// Create a new state variable with its default value.
-    pub fn new(default: StateValue) -> Self {
+    pub fn new(default: DataType) -> Self {
         Self {
             current_value: default,
             has_changes: false,
         }
     }
 
-    /// Set the current value with type validation.
+    /// Set the current value.
     ///
     /// Sets `has_changes = true` if the value actually changed.
     /// Writing the same value does NOT set `has_changes` per UPnP spec.
-    pub fn set(&mut self, value: StateValue) -> Result<(), Error> {
+    pub fn set(&mut self, value: DataType) {
         if self.current_value != value {
             self.current_value = value;
             self.has_changes = true;
         }
-        Ok(())
     }
 
     /// Mark this variable as having no pending changes (called after eventing).
@@ -179,13 +181,13 @@ impl StateVariable {
 /// action implementations to read/write state, and by GENA/SCPD handlers.
 ///
 /// Key features:
-/// - Type validation on every set operation (via StateVariableName trait)
+/// - Type safety via Rust enum variants (compile-time)
 /// - Batch operations with atomic apply
 /// - Change tracking for GENA eventing
 /// - SCPD name generation
 ///
 /// Constraint: `S` must implement `StateVariableName` for compile-time
-/// type safety — each state variable name knows its data type, eventing
+/// type safety — each state variable name knows its wire type name, eventing
 /// status, and instance-scoping at compile time.
 pub struct StateStore<S: StateVariableName> {
     schema: HashMap<String, StateSchema<S>>,
@@ -222,7 +224,7 @@ impl<S: StateVariableName> StateStore<S> {
     }
 
     /// Get the current value of a state variable.
-    pub fn get(&self, name: S) -> Result<&StateValue, Error> {
+    pub fn get(&self, name: S) -> Result<&DataType, Error> {
         let key = name.as_str().to_string();
         self.variables
             .get(&key)
@@ -234,7 +236,7 @@ impl<S: StateVariableName> StateStore<S> {
     ///
     /// Use this when the `StateStore` is behind a `MutexGuard` to avoid
     /// returning references that would outlive the guard.
-    pub fn get_owned(&self, name: S) -> Result<StateValue, Error> {
+    pub fn get_owned(&self, name: S) -> Result<DataType, Error> {
         let key = name.as_str().to_string();
         self.variables
             .get(&key)
@@ -262,67 +264,54 @@ impl<S: StateVariableName> StateStore<S> {
         self.variables.get(&key).cloned()
     }
 
-    /// Set a state variable value with type validation.
+    /// Set a state variable value.
     ///
-    /// Uses `StateVariableName::data_type()` for compile-time type lookup
-    /// instead of runtime schema lookup.
-    pub fn set(&mut self, name: S, value: StateValue) -> Result<(), Error> {
+    /// Type safety is compile-time: Rust enum variants enforce correct types.
+    pub fn set(&mut self, name: S, value: DataType) {
         let key = name.as_str().to_string();
-        // Validate against trait's data_type (compile-time)
-        value.validate(name.data_type())?;
-
         if let Some(var) = self.variables.get_mut(&key) {
             var.set(value)
-        } else {
-            Err(Error::ArgumentValueInvalid)
         }
     }
 
     /// Set multiple state variables atomically.
     ///
-    /// All changes are recorded. If any set fails, none are applied.
-    pub fn set_batch(&mut self, pairs: Vec<(S, StateValue)>) -> Result<(), Error> {
-        // Validate all first (using trait's data_type)
-        for (name, value) in &pairs {
-            value.validate(name.data_type())?;
-        }
-
-        // Apply all
+    /// All changes are recorded. Type safety is compile-time via Rust enum variants.
+    pub fn set_batch(&mut self, pairs: Vec<(S, DataType)>) {
         for (name, value) in pairs {
-            self.set(name, value)?;
+            self.set(name, value);
         }
-        Ok(())
     }
 
     /// Get all evented state variables with their current values.
     ///
     /// Returns a list of (name, value) pairs suitable for GENA eventing.
-    /// Uses `StateVariableName::is_evented()` (compile-time).
+    /// Includes variables where `is_evented()` is true OR `via_lastchange()` is true.
     pub fn collect_evented(&self) -> Vec<(String, String)> {
         self.variables
             .iter()
             .filter(|(name, _)| {
-                // Look up the name enum variant to check is_evented()
+                // Variables with either direct eventing or via LastChange
                 self.schema
                     .get(*name)
-                    .map(|s| s.name.is_evented())
+                    .map(|s| s.name.is_evented() || s.name.via_lastchange())
                     .unwrap_or(false)
             })
-            .map(|(name, v)| (name.clone(), v.current_value.as_str()))
+            .map(|(name, v)| (name.clone(), v.current_value.as_value_str()))
             .collect()
     }
 
     /// Get all evented variables that have pending changes.
-    /// Uses `StateVariableName::is_evented()` (compile-time).
+    /// Uses `is_evented() || via_lastchange()` (compile-time).
     pub fn collect_changed_evented(&self) -> Vec<(String, String)> {
         self.variables
             .iter()
             .filter(|(name, v)| {
-                self.schema
-                    .get(*name)
-                    .map_or(false, |s| s.name.is_evented() && v.has_changes)
+                self.schema.get(*name).map_or(false, |s| {
+                    (s.name.is_evented() || s.name.via_lastchange()) && v.has_changes
+                })
             })
-            .map(|(name, v)| (name.clone(), v.current_value.as_str()))
+            .map(|(name, v)| (name.clone(), v.current_value.as_value_str()))
             .collect()
     }
 
@@ -350,7 +339,7 @@ impl<S: StateVariableName> StateStore<S> {
     /// Get the current value of an instance-scoped state variable for a specific InstanceID.
     ///
     /// Falls back to global (InstanceID=0) value if the instance doesn't exist yet.
-    pub fn get_instance(&self, name: S, instance_id: u32) -> Result<&StateValue, Error> {
+    pub fn get_instance(&self, name: S, instance_id: u32) -> Result<&DataType, Error> {
         let key = name.as_str().to_string();
 
         // First check the specific instance
@@ -408,19 +397,12 @@ impl<S: StateVariableName> StateStore<S> {
         self.instance_states.remove(&instance_id);
     }
 
-    /// Set an instance-scoped state variable value with type validation.
+    /// Set an instance-scoped state variable value.
     ///
     /// Creates the instance if it doesn't exist.
-    pub fn set_instance(
-        &mut self,
-        name: S,
-        instance_id: u32,
-        value: StateValue,
-    ) -> Result<(), Error> {
+    /// Type safety is compile-time: Rust enum variants enforce correct types.
+    pub fn set_instance(&mut self, name: S, instance_id: u32, value: DataType) {
         let key = name.as_str().to_string();
-
-        // Validate against trait's data_type (compile-time)
-        value.validate(name.data_type())?;
 
         // Ensure instance exists
         if !self.instance_states.contains_key(&instance_id) {
@@ -430,27 +412,14 @@ impl<S: StateVariableName> StateStore<S> {
         if let Some(instance_vars) = self.instance_states.get_mut(&instance_id) {
             if let Some(var) = instance_vars.get_mut(&key) {
                 var.set(value)
-            } else {
-                Err(Error::ArgumentValueInvalid)
             }
-        } else {
-            Err(Error::ArgumentValueInvalid)
         }
     }
 
     /// Set multiple instance-scoped state variables atomically.
     ///
-    /// All changes are recorded. If any set fails, none are applied.
-    pub fn set_instance_batch(
-        &mut self,
-        instance_id: u32,
-        pairs: Vec<(S, StateValue)>,
-    ) -> Result<(), Error> {
-        // Validate all first (using trait's data_type)
-        for (name, value) in &pairs {
-            value.validate(name.data_type())?;
-        }
-
+    /// All changes are recorded. Type safety is compile-time via Rust enum variants.
+    pub fn set_instance_batch(&mut self, instance_id: u32, pairs: Vec<(S, DataType)>) {
         // Ensure instance exists
         if !self.instance_states.contains_key(&instance_id) {
             self.create_instance(instance_id);
@@ -458,9 +427,8 @@ impl<S: StateVariableName> StateStore<S> {
 
         // Apply all
         for (name, value) in pairs {
-            self.set_instance(name, instance_id, value)?;
+            self.set_instance(name, instance_id, value);
         }
-        Ok(())
     }
 
     /// Get all evented state variables for a specific instance.
@@ -472,7 +440,7 @@ impl<S: StateVariableName> StateStore<S> {
         let mut result = Vec::new();
 
         for (name, schema) in &self.schema {
-            if !schema.name.is_evented() {
+            if !(schema.name.is_evented() || schema.name.via_lastchange()) {
                 continue;
             }
 
@@ -486,7 +454,7 @@ impl<S: StateVariableName> StateStore<S> {
             };
 
             if let Some(var) = value {
-                result.push((name.clone(), var.current_value.as_str()));
+                result.push((name.clone(), var.current_value.as_value_str()));
             }
         }
 
@@ -498,7 +466,7 @@ impl<S: StateVariableName> StateStore<S> {
         let mut result = Vec::new();
 
         for (name, schema) in &self.schema {
-            if !schema.name.is_evented() {
+            if !(schema.name.is_evented() || schema.name.via_lastchange()) {
                 continue;
             }
 
@@ -513,7 +481,7 @@ impl<S: StateVariableName> StateStore<S> {
 
             if let Some(var) = var {
                 if var.has_changes {
-                    result.push((name.clone(), var.current_value.as_str()));
+                    result.push((name.clone(), var.current_value.as_value_str()));
                 }
             }
         }

@@ -38,6 +38,7 @@ pub struct ConnectionInfo {
 /// - PrepareForConnection() allocates ConnectionID and binds AVTransportID/RcsID
 /// - CurrentConnectionIDs state variable tracks active connections
 /// - ConnectionComplete() removes the connection from the table
+#[derive(Clone)]
 pub struct ConnectionManagerService {
     actions: Arc<std::sync::Mutex<ActionMap>>,
     state_store: Arc<std::sync::Mutex<StateStore<r#static::StateVariableName>>>,
@@ -199,29 +200,23 @@ impl ConnectionManagerService {
     fn init_state_vars(state_store: &mut StateStore<r#static::StateVariableName>) {
         use r#static::StateVariableName;
 
-        // SourceProtocolInfo — CSV of protocol info entries
+        // SourceProtocolInfo — CSV of protocol info entries (NOT evented per spec)
         state_store.register(StateSchema {
             name: StateVariableName::SourceProtocolInfo,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: true,
             default: StateValue::String(String::new()),
             ..Default::default()
         });
 
-        // SinkProtocolInfo — CSV of protocol info entries
+        // SinkProtocolInfo — CSV of protocol info entries (NOT evented per spec)
         state_store.register(StateSchema {
             name: StateVariableName::SinkProtocolInfo,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: true,
             default: StateValue::String(String::new()),
             ..Default::default()
         });
 
-        // CurrentConnectionIDs — CSV of active ConnectionID values
+        // CurrentConnectionIDs — CSV of active ConnectionID values (NOT evented per spec)
         state_store.register(StateSchema {
             name: StateVariableName::CurrentConnectionIDs,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: true,
             default: StateValue::String("0".to_string()),
             ..Default::default()
         });
@@ -229,8 +224,6 @@ impl ConnectionManagerService {
         // FeatureList — Features XML Document
         state_store.register(StateSchema {
             name: StateVariableName::FeatureList,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             ..Default::default()
         });
@@ -238,17 +231,13 @@ impl ConnectionManagerService {
         // ClockUpdateID — ui4, monotonic counter
         state_store.register(StateSchema {
             name: StateVariableName::ClockUpdateID,
-            data_type: crate::types::upnp::DataType::UnsignedInt,
-            send_events: false,
             default: StateValue::Ui4(0),
             ..Default::default()
         });
 
-        // DeviceClockInfoUpdates — XML document
+        // DeviceClockInfoUpdates — XML document (directly evented per spec §4.2)
         state_store.register(StateSchema {
             name: StateVariableName::DeviceClockInfoUpdates,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: true,
             default: StateValue::String(String::new()),
             ..Default::default()
         });
@@ -260,8 +249,6 @@ impl ConnectionManagerService {
         // A_ARG_TYPE_ConnectionStatus — allowed values per spec §4.2
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_ConnectionStatus,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             allowed_values: Some(vec![
                 "OK".to_string(),
@@ -277,8 +264,6 @@ impl ConnectionManagerService {
         // A_ARG_TYPE_ConnectionManager — UDN/serviceId reference
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_ConnectionManager,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -287,8 +272,6 @@ impl ConnectionManagerService {
         // A_ARG_TYPE_Direction — Input or Output
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_Direction,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             allowed_values: Some(vec!["Input".to_string(), "Output".to_string()]),
             argument_type: true,
@@ -298,8 +281,6 @@ impl ConnectionManagerService {
         // A_ARG_TYPE_ProtocolInfo — protocol info string format
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_ProtocolInfo,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -308,8 +289,6 @@ impl ConnectionManagerService {
         // A_ARG_TYPE_ConnectionID — i4, connection identifier
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_ConnectionID,
-            data_type: crate::types::upnp::DataType::Int,
-            send_events: false,
             default: StateValue::I4(-1),
             argument_type: true,
             ..Default::default()
@@ -318,8 +297,6 @@ impl ConnectionManagerService {
         // A_ARG_TYPE_AVTransportID — i4, AVTransport instance ID
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_AVTransportID,
-            data_type: crate::types::upnp::DataType::Int,
-            send_events: false,
             default: StateValue::I4(-1),
             argument_type: true,
             ..Default::default()
@@ -328,8 +305,6 @@ impl ConnectionManagerService {
         // A_ARG_TYPE_RcsID — i4, RenderingControl instance ID
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_RcsID,
-            data_type: crate::types::upnp::DataType::Int,
-            send_events: false,
             default: StateValue::I4(-1),
             argument_type: true,
             ..Default::default()
@@ -338,8 +313,6 @@ impl ConnectionManagerService {
         // A_ARG_TYPE_ItemInfoFilter — CSV of property specifiers
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_ItemInfoFilter,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -348,8 +321,6 @@ impl ConnectionManagerService {
         // A_ARG_TYPE_Result — DIDL-Lite XML document
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_Result,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -358,8 +329,6 @@ impl ConnectionManagerService {
         // A_ARG_TYPE_RenderingInfoList — XML rendering info
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_RenderingInfoList,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -394,43 +363,40 @@ impl ConnectionManagerService {
         store.get_mut_owned(name)
     }
 
-    /// Set a state variable value. Returns error if validation fails.
+    /// Set any state variable at a specific InstanceID.
     ///
-    /// If the value actually changed, automatically triggers GENA events for all evented state variables.
+    /// This is the single gatekeeper method for all state mutations. It:
+    /// 1. Sets the value in StateStore
+    /// 2. Triggers GENA events via direct NOTIFY (CM has no LastChange var)
+    ///
+    /// ConnectionManager has NO instance-scoped variables per UPnP spec.
+    /// The only evented variable is DeviceClockInfoUpdates (is_evented=YES, via_lastchange=—),
+    /// which sends a bare propertyset NOTIFY — no LastChange wrapping.
+    ///
+    /// Writing the same value does NOT set has_changes (per UPnP spec).
     pub fn set_state_var(
-        &mut self,
+        &self,
+        _instance_id: u32,
         name: r#static::StateVariableName,
-        value: String,
-    ) -> Result<(), crate::types::upnp::Error> {
-        {
-            let mut store = self.state_store.lock().unwrap();
-            store.set(name, StateValue::String(value))?;
-        }
-        self.trigger_events();
-        Ok(())
-    }
+        value: StateValue,
+    ) {
+        let mut store = self.state_store.lock().unwrap();
+        store.set(name, value);
+        drop(store);
 
-    /// Build the LastChange XML propertyset from all evented state variables.
-    fn build_last_change(&self) -> String {
-        let store = self.state_store.lock().unwrap();
-        let evented = store.collect_evented();
-        crate::services::lastchange::build_last_change(
-            "urn:schemas-upnp-org:metadata-1-0/CM/",
-            &evented,
-        )
+        self.trigger_events();
     }
 
     /// Trigger GENA events for all evented state variables.
-    fn trigger_events(&mut self) {
-        let last_change_xml = self.build_last_change();
-
-        // Update LastChange state variable (if it exists)
-        // Note: ConnectionManager doesn't have a LastChange var per spec,
-        // but we keep the pattern for consistency
-        let _ = last_change_xml;
-
+    ///
+    /// ConnectionManager uses direct NOTIFY (bare propertyset), not LastChange.
+    /// Only DeviceClockInfoUpdates is evented per spec §4.2.
+    fn trigger_events(&self) {
         let store = self.state_store.lock().unwrap();
         let evented = store.collect_evented();
+        drop(store);
+
+        // Direct NOTIFY: bare propertyset, no LastChange wrapping
         let mut publisher = self.event_publisher.lock().unwrap();
         let _results = publisher.notify(&evented);
     }

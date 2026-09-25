@@ -114,12 +114,14 @@ pub struct SetStateVariablesInput {
 
 #[derive(Debug, Clone)]
 pub struct SetSyncOffsetInput {
-    pub sync_offset: String,
+    pub instance_id: u32,
+    pub new_sync_offset: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct AdjustSyncOffsetInput {
-    pub sync_offset_adj: i32,
+    pub instance_id: u32,
+    pub adjustment: i32,
     pub sync_point: String,
 }
 
@@ -167,17 +169,11 @@ pub struct NextOutput {}
 #[derive(Debug, Clone, Default)]
 pub struct PreviousOutput {}
 
-#[derive(Debug, Clone)]
-pub struct SetAVTransportURIOutput {
-    pub nr_tracks: u32,
-    pub media_duration: String,
-}
+#[derive(Debug, Clone, Default)]
+pub struct SetAVTransportURIOutput {}
 
-#[derive(Debug, Clone)]
-pub struct SetNextAVTransportURIOutput {
-    pub nr_tracks: u32,
-    pub media_duration: String,
-}
+#[derive(Debug, Clone, Default)]
+pub struct SetNextAVTransportURIOutput {}
 
 #[derive(Debug, Clone)]
 pub struct GetMediaInfoOutput {

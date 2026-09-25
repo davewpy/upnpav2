@@ -1023,7 +1023,28 @@ impl crate::state::StateVariableName for StateVariableName {
     }
 
     fn is_evented(&self) -> bool {
+        // Per UPnP-av-AVTransport-v3 spec §6.1:
+        // LastChange sends direct GENA NOTIFY (is_evented=YES, via_lastchange=—).
         matches!(self, Self::LastChange)
+    }
+
+    fn via_lastchange(&self) -> bool {
+        // All non-position state variables are indirectly evented via LastChange XML payload.
+        // Position vars (RelativeTimePosition, AbsoluteTimePosition, RelativeCounterPosition,
+        // AbsoluteCounterPosition) are NOT in LastChange per spec section 5.3 — must poll.
+        // A_ARG_TYPE_* variables are type definitions — not evented.
+        !matches!(
+            self,
+            Self::A_ARG_TYPE_InstanceID
+                | Self::A_ARG_TYPE_SeekMode
+                | Self::A_ARG_TYPE_SeekTarget
+                | Self::A_ARG_TYPE_RecordMedium
+                | Self::A_ARG_TYPE_StreamFormat
+                | Self::RelativeTimePosition
+                | Self::AbsoluteTimePosition
+                | Self::RelativeCounterPosition
+                | Self::AbsoluteCounterPosition
+        )
     }
 
     fn is_instance_scoped(&self) -> bool {
@@ -1057,42 +1078,42 @@ impl crate::state::StateVariableName for StateVariableName {
         )
     }
 
-    fn data_type(&self) -> crate::types::upnp::DataType {
+    fn data_type_name(&self) -> &'static str {
         match self {
-            Self::TransportState => crate::types::upnp::DataType::String,
-            Self::TransportStatus => crate::types::upnp::DataType::String,
-            Self::CurrentMediaCategory => crate::types::upnp::DataType::String,
-            Self::AVTransportURI => crate::types::upnp::DataType::Uri,
-            Self::AVTransportURIMetaData => crate::types::upnp::DataType::String,
-            Self::NextAVTransportURI => crate::types::upnp::DataType::Uri,
-            Self::NextAVTransportURIMetaData => crate::types::upnp::DataType::String,
-            Self::CurrentTrackURI => crate::types::upnp::DataType::Uri,
-            Self::CurrentTrackMetaData => crate::types::upnp::DataType::String,
-            Self::CurrentTrack => crate::types::upnp::DataType::UnsignedInt,
-            Self::NumberOfTracks => crate::types::upnp::DataType::UnsignedInt,
-            Self::CurrentTrackDuration => crate::types::upnp::DataType::String,
-            Self::CurrentMediaDuration => crate::types::upnp::DataType::String,
-            Self::RelativeTimePosition => crate::types::upnp::DataType::String,
-            Self::AbsoluteTimePosition => crate::types::upnp::DataType::String,
-            Self::RelativeCounterPosition => crate::types::upnp::DataType::Int,
-            Self::AbsoluteCounterPosition => crate::types::upnp::DataType::UnsignedInt,
-            Self::PlaybackStorageMedium => crate::types::upnp::DataType::String,
-            Self::RecordStorageMedium => crate::types::upnp::DataType::String,
-            Self::PossiblePlaybackStorageMedia => crate::types::upnp::DataType::String,
-            Self::PossibleRecordStorageMedia => crate::types::upnp::DataType::String,
-            Self::CurrentPlayMode => crate::types::upnp::DataType::String,
-            Self::TransportPlaySpeed => crate::types::upnp::DataType::String,
-            Self::RecordMediumWriteStatus => crate::types::upnp::DataType::String,
-            Self::CurrentRecordQualityMode => crate::types::upnp::DataType::String,
-            Self::PossibleRecordQualityModes => crate::types::upnp::DataType::String,
-            Self::DRMState => crate::types::upnp::DataType::String,
-            Self::LastChange => crate::types::upnp::DataType::String,
-            Self::CurrentTransportActions => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_InstanceID => crate::types::upnp::DataType::UnsignedInt,
-            Self::A_ARG_TYPE_SeekMode => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_SeekTarget => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_RecordMedium => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_StreamFormat => crate::types::upnp::DataType::String,
+            Self::TransportState => "string",
+            Self::TransportStatus => "string",
+            Self::CurrentMediaCategory => "string",
+            Self::AVTransportURI => "uri",
+            Self::AVTransportURIMetaData => "string",
+            Self::NextAVTransportURI => "uri",
+            Self::NextAVTransportURIMetaData => "string",
+            Self::CurrentTrackURI => "uri",
+            Self::CurrentTrackMetaData => "string",
+            Self::CurrentTrack => "ui4",
+            Self::NumberOfTracks => "ui4",
+            Self::CurrentTrackDuration => "string",
+            Self::CurrentMediaDuration => "string",
+            Self::RelativeTimePosition => "string",
+            Self::AbsoluteTimePosition => "string",
+            Self::RelativeCounterPosition => "i4",
+            Self::AbsoluteCounterPosition => "ui4",
+            Self::PlaybackStorageMedium => "string",
+            Self::RecordStorageMedium => "string",
+            Self::PossiblePlaybackStorageMedia => "string",
+            Self::PossibleRecordStorageMedia => "string",
+            Self::CurrentPlayMode => "string",
+            Self::TransportPlaySpeed => "string",
+            Self::RecordMediumWriteStatus => "string",
+            Self::CurrentRecordQualityMode => "string",
+            Self::PossibleRecordQualityModes => "string",
+            Self::DRMState => "string",
+            Self::LastChange => "string",
+            Self::CurrentTransportActions => "string",
+            Self::A_ARG_TYPE_InstanceID => "ui4",
+            Self::A_ARG_TYPE_SeekMode => "string",
+            Self::A_ARG_TYPE_SeekTarget => "string",
+            Self::A_ARG_TYPE_RecordMedium => "string",
+            Self::A_ARG_TYPE_StreamFormat => "string",
         }
     }
 }

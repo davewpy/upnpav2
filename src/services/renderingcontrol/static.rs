@@ -302,7 +302,42 @@ impl crate::state::StateVariableName for StateVariableName {
     }
 
     fn is_evented(&self) -> bool {
-        matches!(self, Self::LastChange)
+        // Per UPnP-av-RenderingControl-v3 spec §7.1:
+        // LastChange, AllowedDefaultTransformSettings, and DefaultTransformSettings
+        // send direct GENA NOTIFY (is_evented=YES, via_lastchange=—).
+        matches!(
+            self,
+            Self::LastChange
+                | Self::AllowedDefaultTransformSettings
+                | Self::DefaultTransformSettings
+        )
+    }
+
+    fn via_lastchange(&self) -> bool {
+        // Audio/video state variables are indirectly evented via LastChange XML payload.
+        // PresetNameList changes when presets are added/removed (may be out-of-band).
+        // A_ARG_TYPE_* variables are type definitions — not evented.
+        matches!(
+            self,
+            Self::Brightness
+                | Self::Contrast
+                | Self::Sharpness
+                | Self::RedVideoGain
+                | Self::GreenVideoGain
+                | Self::BlueVideoGain
+                | Self::RedVideoBlackLevel
+                | Self::GreenVideoBlackLevel
+                | Self::BlueVideoBlackLevel
+                | Self::ColorTemperature
+                | Self::HorizontalKeystone
+                | Self::VerticalKeystone
+                | Self::Mute
+                | Self::Volume
+                | Self::VolumeDB
+                | Self::Loudness
+                | Self::AllowedTransformSettings
+                | Self::TransformSettings
+        )
     }
 
     fn is_instance_scoped(&self) -> bool {
@@ -332,38 +367,38 @@ impl crate::state::StateVariableName for StateVariableName {
         )
     }
 
-    fn data_type(&self) -> crate::types::upnp::DataType {
+    fn data_type_name(&self) -> &'static str {
         match self {
-            Self::LastChange => crate::types::upnp::DataType::String,
-            Self::PresetNameList => crate::types::upnp::DataType::String,
-            Self::Brightness => crate::types::upnp::DataType::UnsignedShort,
-            Self::Contrast => crate::types::upnp::DataType::UnsignedShort,
-            Self::Sharpness => crate::types::upnp::DataType::UnsignedShort,
-            Self::RedVideoGain => crate::types::upnp::DataType::UnsignedShort,
-            Self::GreenVideoGain => crate::types::upnp::DataType::UnsignedShort,
-            Self::BlueVideoGain => crate::types::upnp::DataType::UnsignedShort,
-            Self::RedVideoBlackLevel => crate::types::upnp::DataType::UnsignedShort,
-            Self::GreenVideoBlackLevel => crate::types::upnp::DataType::UnsignedShort,
-            Self::BlueVideoBlackLevel => crate::types::upnp::DataType::UnsignedShort,
-            Self::ColorTemperature => crate::types::upnp::DataType::UnsignedShort,
-            Self::HorizontalKeystone => crate::types::upnp::DataType::Short,
-            Self::VerticalKeystone => crate::types::upnp::DataType::Short,
-            Self::Mute => crate::types::upnp::DataType::Boolean,
-            Self::Volume => crate::types::upnp::DataType::UnsignedShort,
-            Self::VolumeDB => crate::types::upnp::DataType::Short,
-            Self::Loudness => crate::types::upnp::DataType::Boolean,
-            Self::AllowedTransformSettings => crate::types::upnp::DataType::String,
-            Self::TransformSettings => crate::types::upnp::DataType::String,
-            Self::AllowedDefaultTransformSettings => crate::types::upnp::DataType::String,
-            Self::DefaultTransformSettings => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_InstanceID => crate::types::upnp::DataType::UnsignedInt,
-            Self::A_ARG_TYPE_Channel => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_PresetName => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_DeviceUDN => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_ServiceType => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_ServiceID => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_StateVariableValuePairs => crate::types::upnp::DataType::String,
-            Self::A_ARG_TYPE_StateVariableList => crate::types::upnp::DataType::String,
+            Self::LastChange => "string",
+            Self::PresetNameList => "string",
+            Self::Brightness => "ui2",
+            Self::Contrast => "ui2",
+            Self::Sharpness => "ui2",
+            Self::RedVideoGain => "ui2",
+            Self::GreenVideoGain => "ui2",
+            Self::BlueVideoGain => "ui2",
+            Self::RedVideoBlackLevel => "ui2",
+            Self::GreenVideoBlackLevel => "ui2",
+            Self::BlueVideoBlackLevel => "ui2",
+            Self::ColorTemperature => "ui2",
+            Self::HorizontalKeystone => "i2",
+            Self::VerticalKeystone => "i2",
+            Self::Mute => "boolean",
+            Self::Volume => "ui2",
+            Self::VolumeDB => "i2",
+            Self::Loudness => "boolean",
+            Self::AllowedTransformSettings => "string",
+            Self::TransformSettings => "string",
+            Self::AllowedDefaultTransformSettings => "string",
+            Self::DefaultTransformSettings => "string",
+            Self::A_ARG_TYPE_InstanceID => "ui4",
+            Self::A_ARG_TYPE_Channel => "string",
+            Self::A_ARG_TYPE_PresetName => "string",
+            Self::A_ARG_TYPE_DeviceUDN => "string",
+            Self::A_ARG_TYPE_ServiceType => "string",
+            Self::A_ARG_TYPE_ServiceID => "string",
+            Self::A_ARG_TYPE_StateVariableValuePairs => "string",
+            Self::A_ARG_TYPE_StateVariableList => "string",
         }
     }
 }

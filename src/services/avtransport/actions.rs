@@ -4,54 +4,30 @@
 /// The `execute` method extracts typed args, calls the trait, and wraps results.
 ///
 /// Bridge structs are prefixed with `Action` to avoid name collision with traits.
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use super::AvTransportEventPublisher;
+use super::AvTransportService;
 use super::r#static::{PlayMode, StateVariableName};
 use crate::services::avtransport::traits::*;
 use crate::types::upnp::{
-    Action, ActionArgs, ArgumentDefinition, ArgumentDirection, Error, StateStore, StateValue,
+    Action, ActionArgs, ArgumentDefinition, ArgumentDirection, Error, StateValue,
 };
 
 // ===========================================================================
-// Required Actions (R) — MVP Core
+// Required Actions (R)
 // ===========================================================================
 
 pub struct ActionPlay<T: Play> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
+    service: AvTransportService,
 }
 
 impl<T: Play> ActionPlay<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T, service: AvTransportService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
+            service,
         }
-    }
-
-    fn trigger_last_change(&self) {
-        let last_change_xml = {
-            let store = self.state_store.lock().unwrap();
-            crate::services::lastchange::build_last_change(
-                "urn:schemas-upnp-org:metadata-1-0/AVT/",
-                &store.collect_evented(),
-            )
-        };
-        let mut store = self.state_store.lock().unwrap();
-        if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
-            last_change_var.current_value = StateValue::String(last_change_xml.clone());
-        }
-        drop(store);
-        let properties = vec![("LastChange".to_string(), last_change_xml)];
-        let mut publisher = self.event_publisher.lock().unwrap();
-        let _ = publisher.notify(&properties);
     }
 }
 
@@ -96,18 +72,16 @@ impl<T: Play> Action for ActionPlay<T> {
             .map_err(|_| Error::ActionFailed)?;
 
         // Update state variables per spec §Play state effects
-        let mut store = self.state_store.lock().unwrap();
-        store.set(
+        self.service.set_state_var(
+            instance_id,
             StateVariableName::TransportState,
             StateValue::String("PLAYING".to_string()),
-        )?;
-        store.set(
+        );
+        self.service.set_state_var(
+            instance_id,
             StateVariableName::TransportPlaySpeed,
             StateValue::String(speed),
-        )?;
-        drop(store);
-        // Trigger LastChange event
-        self.trigger_last_change();
+        );
 
         Ok(ActionArgs::new())
     }
@@ -115,39 +89,15 @@ impl<T: Play> Action for ActionPlay<T> {
 
 pub struct ActionStop<T: Stop> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
+    service: AvTransportService,
 }
 
 impl<T: Stop> ActionStop<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T, service: AvTransportService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
+            service,
         }
-    }
-
-    fn trigger_last_change(&self) {
-        let last_change_xml = {
-            let store = self.state_store.lock().unwrap();
-            crate::services::lastchange::build_last_change(
-                "urn:schemas-upnp-org:metadata-1-0/AVT/",
-                &store.collect_evented(),
-            )
-        };
-        let mut store = self.state_store.lock().unwrap();
-        if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
-            last_change_var.current_value = StateValue::String(last_change_xml.clone());
-        }
-        drop(store);
-        let properties = vec![("LastChange".to_string(), last_change_xml)];
-        let mut publisher = self.event_publisher.lock().unwrap();
-        let _ = publisher.notify(&properties);
     }
 }
 
@@ -181,14 +131,11 @@ impl<T: Stop> Action for ActionStop<T> {
             .map_err(|_| Error::ActionFailed)?;
 
         // Update state variables per spec §Stop state effects
-        let mut store = self.state_store.lock().unwrap();
-        store.set(
+        self.service.set_state_var(
+            instance_id,
             StateVariableName::TransportState,
             StateValue::String("STOPPED".to_string()),
-        )?;
-        drop(store);
-        // Trigger LastChange event
-        self.trigger_last_change();
+        );
 
         Ok(ActionArgs::new())
     }
@@ -196,39 +143,15 @@ impl<T: Stop> Action for ActionStop<T> {
 
 pub struct ActionSeek<T: Seek> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
+    service: AvTransportService,
 }
 
 impl<T: Seek> ActionSeek<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T, service: AvTransportService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
+            service,
         }
-    }
-
-    fn trigger_last_change(&self) {
-        let last_change_xml = {
-            let store = self.state_store.lock().unwrap();
-            crate::services::lastchange::build_last_change(
-                "urn:schemas-upnp-org:metadata-1-0/AVT/",
-                &store.collect_evented(),
-            )
-        };
-        let mut store = self.state_store.lock().unwrap();
-        if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
-            last_change_var.current_value = StateValue::String(last_change_xml.clone());
-        }
-        drop(store);
-        let properties = vec![("LastChange".to_string(), last_change_xml)];
-        let mut publisher = self.event_publisher.lock().unwrap();
-        let _ = publisher.notify(&properties);
     }
 }
 
@@ -288,14 +211,11 @@ impl<T: Seek> Action for ActionSeek<T> {
         // Update state variables per spec §Seek state effects
         // Seek: TransportState → TRANSITIONING → previous state
         // For now, set to TRANSITIONING; app trait should restore final state
-        let mut store = self.state_store.lock().unwrap();
-        store.set(
+        self.service.set_state_var(
+            instance_id,
             StateVariableName::TransportState,
             StateValue::String("TRANSITIONING".to_string()),
-        )?;
-        drop(store);
-        // Trigger LastChange event
-        self.trigger_last_change();
+        );
 
         Ok(ActionArgs::new())
     }
@@ -303,39 +223,15 @@ impl<T: Seek> Action for ActionSeek<T> {
 
 pub struct ActionNext<T: Next> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
+    service: AvTransportService,
 }
 
 impl<T: Next> ActionNext<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T, service: AvTransportService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
+            service,
         }
-    }
-
-    fn trigger_last_change(&self) {
-        let last_change_xml = {
-            let store = self.state_store.lock().unwrap();
-            crate::services::lastchange::build_last_change(
-                "urn:schemas-upnp-org:metadata-1-0/AVT/",
-                &store.collect_evented(),
-            )
-        };
-        let mut store = self.state_store.lock().unwrap();
-        if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
-            last_change_var.current_value = StateValue::String(last_change_xml.clone());
-        }
-        drop(store);
-        let properties = vec![("LastChange".to_string(), last_change_xml)];
-        let mut publisher = self.event_publisher.lock().unwrap();
-        let _ = publisher.notify(&properties);
     }
 }
 
@@ -369,14 +265,11 @@ impl<T: Next> Action for ActionNext<T> {
             .map_err(|_| Error::ActionFailed)?;
 
         // Update state variables per spec §Next state effects
-        let mut store = self.state_store.lock().unwrap();
-        store.set(
+        self.service.set_state_var(
+            instance_id,
             StateVariableName::TransportState,
             StateValue::String("TRANSITIONING".to_string()),
-        )?;
-        drop(store);
-        // Trigger LastChange event
-        self.trigger_last_change();
+        );
 
         Ok(ActionArgs::new())
     }
@@ -384,39 +277,15 @@ impl<T: Next> Action for ActionNext<T> {
 
 pub struct ActionPrevious<T: Previous> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
+    service: AvTransportService,
 }
 
 impl<T: Previous> ActionPrevious<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T, service: AvTransportService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
+            service,
         }
-    }
-
-    fn trigger_last_change(&self) {
-        let last_change_xml = {
-            let store = self.state_store.lock().unwrap();
-            crate::services::lastchange::build_last_change(
-                "urn:schemas-upnp-org:metadata-1-0/AVT/",
-                &store.collect_evented(),
-            )
-        };
-        let mut store = self.state_store.lock().unwrap();
-        if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
-            last_change_var.current_value = StateValue::String(last_change_xml.clone());
-        }
-        drop(store);
-        let properties = vec![("LastChange".to_string(), last_change_xml)];
-        let mut publisher = self.event_publisher.lock().unwrap();
-        let _ = publisher.notify(&properties);
     }
 }
 
@@ -450,14 +319,11 @@ impl<T: Previous> Action for ActionPrevious<T> {
             .map_err(|_| Error::ActionFailed)?;
 
         // Update state variables per spec §Previous state effects
-        let mut store = self.state_store.lock().unwrap();
-        store.set(
+        self.service.set_state_var(
+            instance_id,
             StateVariableName::TransportState,
             StateValue::String("TRANSITIONING".to_string()),
-        )?;
-        drop(store);
-        // Trigger LastChange event
-        self.trigger_last_change();
+        );
 
         Ok(ActionArgs::new())
     }
@@ -465,20 +331,14 @@ impl<T: Previous> Action for ActionPrevious<T> {
 
 pub struct ActionSetAVTransportURI<T: SetAVTransportURI> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
+    service: AvTransportService,
 }
 
 impl<T: SetAVTransportURI> ActionSetAVTransportURI<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T, service: AvTransportService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
+            service,
         }
     }
 }
@@ -510,19 +370,7 @@ impl<T: SetAVTransportURI> Action for ActionSetAVTransportURI<T> {
     }
 
     fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
-                name: "NrTracks",
-                direction: ArgumentDirection::OUT,
-                related_state_var: Some("NumberOfTracks"),
-            },
-            ArgumentDefinition {
-                name: "MediaDuration",
-                direction: ArgumentDirection::OUT,
-                related_state_var: Some("CurrentMediaDuration"),
-            },
-        ];
-        &ARGS
+        &[]
     }
 
     fn execute(&self, args: &ActionArgs) -> Result<ActionArgs, Error> {
@@ -541,14 +389,12 @@ impl<T: SetAVTransportURI> Action for ActionSetAVTransportURI<T> {
             current_uri: current_uri.clone(),
             current_uri_metadata: current_uri_metadata.clone(),
         };
-        let output = self
-            .trait_impl
+        self.trait_impl
             .set_av_transport_uri(input)
             .map_err(|_| Error::ActionFailed)?;
 
         // Update state variables per spec §SetAVTransportURI state effects
         {
-            // Derive PlaybackStorageMedium from URI scheme first (before moving current_uri)
             let medium = if current_uri.starts_with("http") {
                 "NETWORK"
             } else if current_uri.starts_with("file://") {
@@ -556,83 +402,33 @@ impl<T: SetAVTransportURI> Action for ActionSetAVTransportURI<T> {
             } else {
                 "UNKNOWN"
             };
-            let nr_tracks = output.nr_tracks;
-            let media_duration = output.media_duration.clone();
-            let current_uri_metadata = current_uri_metadata.clone();
 
-            let mut store = self.state_store.lock().unwrap();
-            store.set(
+            self.service.set_state_var(
+                instance_id,
                 StateVariableName::AVTransportURI,
                 StateValue::Uri(current_uri),
-            )?;
-            store.set(
+            );
+            self.service.set_state_var(
+                instance_id,
                 StateVariableName::AVTransportURIMetaData,
                 StateValue::String(current_uri_metadata),
-            )?;
-            store.set(
-                StateVariableName::NumberOfTracks,
-                StateValue::Ui4(nr_tracks),
-            )?;
-            store.set(
-                StateVariableName::CurrentMediaDuration,
-                StateValue::String(media_duration),
-            )?;
-            store.set(
-                StateVariableName::PlaybackStorageMedium,
-                StateValue::String(medium.to_string()),
-            )?;
-            store.set(
-                StateVariableName::CurrentMediaCategory,
-                StateValue::String(
-                    if nr_tracks > 0 {
-                        "TRACK_AWARE"
-                    } else {
-                        "NO_MEDIA"
-                    }
-                    .to_string(),
-                ),
-            )?;
+            );
+            // PlaybackStorageMedium and CurrentMediaCategory derived from URI/number of tracks
+            // are updated by the application bridge via set_state_var calls after Load completes.
         }
-        // Trigger LastChange event
-        let last_change_xml = {
-            let store = self.state_store.lock().unwrap();
-            crate::services::lastchange::build_last_change(
-                "urn:schemas-upnp-org:metadata-1-0/AVT/",
-                &store.collect_evented(),
-            )
-        };
-        let mut store = self.state_store.lock().unwrap();
-        if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
-            last_change_var.current_value = StateValue::String(last_change_xml.clone());
-        }
-        drop(store);
-        let properties = vec![("LastChange".to_string(), last_change_xml)];
-        let mut publisher = self.event_publisher.lock().unwrap();
-        let _ = publisher.notify(&properties);
 
-        let mut out = ActionArgs::new();
-        out.set("NrTracks".to_string(), output.nr_tracks.to_string());
-        out.set("MediaDuration".to_string(), output.media_duration);
-        Ok(out)
+        Ok(ActionArgs::new())
     }
 }
 
 pub struct ActionGetMediaInfo<T: GetMediaInfo> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
 }
 
 impl<T: GetMediaInfo> ActionGetMediaInfo<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
         }
     }
 }
@@ -741,20 +537,12 @@ impl<T: GetMediaInfo> Action for ActionGetMediaInfo<T> {
 
 pub struct ActionGetTransportInfo<T: GetTransportInfo> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
 }
 
 impl<T: GetTransportInfo> ActionGetTransportInfo<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
         }
     }
 }
@@ -821,20 +609,12 @@ impl<T: GetTransportInfo> Action for ActionGetTransportInfo<T> {
 
 pub struct ActionGetPositionInfo<T: GetPositionInfo> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
 }
 
 impl<T: GetPositionInfo> ActionGetPositionInfo<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
         }
     }
 }
@@ -925,20 +705,12 @@ impl<T: GetPositionInfo> Action for ActionGetPositionInfo<T> {
 
 pub struct ActionGetDeviceCapabilities<T: GetDeviceCapabilities> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
 }
 
 impl<T: GetDeviceCapabilities> ActionGetDeviceCapabilities<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
         }
     }
 }
@@ -999,20 +771,12 @@ impl<T: GetDeviceCapabilities> Action for ActionGetDeviceCapabilities<T> {
 
 pub struct ActionGetTransportSettings<T: GetTransportSettings> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
 }
 
 impl<T: GetTransportSettings> ActionGetTransportSettings<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
         }
     }
 }
@@ -1074,20 +838,12 @@ impl<T: GetTransportSettings> Action for ActionGetTransportSettings<T> {
 
 pub struct ActionSetNextAVTransportURI<T: SetNextAVTransportURI> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
 }
 
 impl<T: SetNextAVTransportURI> ActionSetNextAVTransportURI<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
         }
     }
 }
@@ -1119,19 +875,7 @@ impl<T: SetNextAVTransportURI> Action for ActionSetNextAVTransportURI<T> {
     }
 
     fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
-                name: "NrTracks",
-                direction: ArgumentDirection::OUT,
-                related_state_var: Some("NumberOfTracks"),
-            },
-            ArgumentDefinition {
-                name: "MediaDuration",
-                direction: ArgumentDirection::OUT,
-                related_state_var: Some("CurrentMediaDuration"),
-            },
-        ];
-        &ARGS
+        &[]
     }
 
     fn execute(&self, args: &ActionArgs) -> Result<ActionArgs, Error> {
@@ -1150,52 +894,24 @@ impl<T: SetNextAVTransportURI> Action for ActionSetNextAVTransportURI<T> {
             next_uri,
             next_uri_metadata,
         };
-        let output = self
-            .trait_impl
+        self.trait_impl
             .set_next_av_transport_uri(input)
             .map_err(|_| Error::ActionFailed)?;
-        let mut out = ActionArgs::new();
-        out.set("NrTracks".to_string(), output.nr_tracks.to_string());
-        out.set("MediaDuration".to_string(), output.media_duration);
-        Ok(out)
+        Ok(ActionArgs::new())
     }
 }
 
 pub struct ActionPause<T: Pause> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
+    service: AvTransportService,
 }
 
 impl<T: Pause> ActionPause<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T, service: AvTransportService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
+            service,
         }
-    }
-
-    fn trigger_last_change(&self) {
-        let last_change_xml = {
-            let store = self.state_store.lock().unwrap();
-            crate::services::lastchange::build_last_change(
-                "urn:schemas-upnp-org:metadata-1-0/AVT/",
-                &store.collect_evented(),
-            )
-        };
-        let mut store = self.state_store.lock().unwrap();
-        if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
-            last_change_var.current_value = StateValue::String(last_change_xml.clone());
-        }
-        drop(store);
-        let properties = vec![("LastChange".to_string(), last_change_xml)];
-        let mut publisher = self.event_publisher.lock().unwrap();
-        let _ = publisher.notify(&properties);
     }
 }
 
@@ -1229,14 +945,11 @@ impl<T: Pause> Action for ActionPause<T> {
             .map_err(|_| Error::ActionFailed)?;
 
         // Update state variables per spec §Pause state effects
-        let mut store = self.state_store.lock().unwrap();
-        store.set(
+        self.service.set_state_var(
+            instance_id,
             StateVariableName::TransportState,
             StateValue::String("PAUSED_PLAYBACK".to_string()),
-        )?;
-        drop(store);
-        // Trigger LastChange event
-        self.trigger_last_change();
+        );
 
         Ok(ActionArgs::new())
     }
@@ -1244,39 +957,15 @@ impl<T: Pause> Action for ActionPause<T> {
 
 pub struct ActionSetPlayMode<T: SetPlayMode> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
+    service: AvTransportService,
 }
 
 impl<T: SetPlayMode> ActionSetPlayMode<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T, service: AvTransportService) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
+            service,
         }
-    }
-
-    fn trigger_last_change(&self) {
-        let last_change_xml = {
-            let store = self.state_store.lock().unwrap();
-            crate::services::lastchange::build_last_change(
-                "urn:schemas-upnp-org:metadata-1-0/AVT/",
-                &store.collect_evented(),
-            )
-        };
-        let mut store = self.state_store.lock().unwrap();
-        if let Some(last_change_var) = store.get_mut(StateVariableName::LastChange) {
-            last_change_var.current_value = StateValue::String(last_change_xml.clone());
-        }
-        drop(store);
-        let properties = vec![("LastChange".to_string(), last_change_xml)];
-        let mut publisher = self.event_publisher.lock().unwrap();
-        let _ = publisher.notify(&properties);
     }
 }
 
@@ -1322,14 +1011,11 @@ impl<T: SetPlayMode> Action for ActionSetPlayMode<T> {
             .map_err(|_| Error::ActionFailed)?;
 
         // Update state variables per spec §SetPlayMode state effects
-        let mut store = self.state_store.lock().unwrap();
-        store.set(
+        self.service.set_state_var(
+            instance_id,
             StateVariableName::CurrentPlayMode,
             StateValue::String(play_mode.as_str().to_string()),
-        )?;
-        drop(store);
-        // Trigger LastChange event
-        self.trigger_last_change();
+        );
 
         Ok(ActionArgs::new())
     }
@@ -1337,20 +1023,12 @@ impl<T: SetPlayMode> Action for ActionSetPlayMode<T> {
 
 pub struct ActionGetCurrentTransportActions<T: GetCurrentTransportActions> {
     trait_impl: Arc<T>,
-    state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-    event_publisher: AvTransportEventPublisher,
 }
 
 impl<T: GetCurrentTransportActions> ActionGetCurrentTransportActions<T> {
-    pub fn new(
-        trait_impl: T,
-        state_store: Arc<Mutex<StateStore<StateVariableName>>>,
-        event_publisher: AvTransportEventPublisher,
-    ) -> Self {
+    pub fn new(trait_impl: T) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
-            state_store,
-            event_publisher,
         }
     }
 }
@@ -1650,7 +1328,7 @@ impl<T: SetStateVariables> Action for ActionSetStateVariables<T> {
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
             ArgumentDefinition {
-                name: "RenderingControlUDN",
+                name: "AVTransportUDN",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_DeviceUDN"),
             },
@@ -1723,25 +1401,35 @@ impl<T: GetSyncOffset> Action for ActionGetSyncOffset<T> {
     }
 
     fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        &[]
+        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+            name: "InstanceID",
+            direction: ArgumentDirection::IN,
+            related_state_var: Some("A_ARG_TYPE_InstanceID"),
+        }];
+        &ARGS
     }
 
     fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
         static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
-            name: "SyncOffset",
+            name: "CurrentSyncOffset",
             direction: ArgumentDirection::OUT,
             related_state_var: Some("SyncOffset"),
         }];
         &ARGS
     }
 
-    fn execute(&self, _args: &ActionArgs) -> Result<ActionArgs, Error> {
+    fn execute(&self, args: &ActionArgs) -> Result<ActionArgs, Error> {
+        let _instance_id = args
+            .get("InstanceID")
+            .unwrap_or("0")
+            .parse::<u32>()
+            .unwrap_or(0);
         let output = self
             .trait_impl
             .get_sync_offset()
             .map_err(|_| Error::ActionFailed)?;
         let mut out = ActionArgs::new();
-        out.set("SyncOffset".to_string(), output.sync_offset);
+        out.set("CurrentSyncOffset".to_string(), output.sync_offset);
         Ok(out)
     }
 }
@@ -1764,11 +1452,18 @@ impl<T: SetSyncOffset> Action for ActionSetSyncOffset<T> {
     }
 
     fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
-            name: "SyncOffset",
-            direction: ArgumentDirection::IN,
-            related_state_var: Some("SyncOffset"),
-        }];
+        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
+            ArgumentDefinition {
+                name: "InstanceID",
+                direction: ArgumentDirection::IN,
+                related_state_var: Some("A_ARG_TYPE_InstanceID"),
+            },
+            ArgumentDefinition {
+                name: "NewSyncOffset",
+                direction: ArgumentDirection::IN,
+                related_state_var: Some("SyncOffset"),
+            },
+        ];
         &ARGS
     }
 
@@ -1777,11 +1472,19 @@ impl<T: SetSyncOffset> Action for ActionSetSyncOffset<T> {
     }
 
     fn execute(&self, args: &ActionArgs) -> Result<ActionArgs, Error> {
-        let sync_offset = args
-            .get("SyncOffset")
+        let instance_id = args
+            .get("InstanceID")
+            .unwrap_or("0")
+            .parse::<u32>()
+            .unwrap_or(0);
+        let new_sync_offset = args
+            .get("NewSyncOffset")
             .ok_or(Error::ArgumentValueInvalid)?
             .to_string();
-        let input = SetSyncOffsetInput { sync_offset };
+        let input = SetSyncOffsetInput {
+            instance_id,
+            new_sync_offset: new_sync_offset,
+        };
         self.trait_impl
             .set_sync_offset(input)
             .map_err(|_| Error::ActionFailed)?;
@@ -1809,14 +1512,14 @@ impl<T: AdjustSyncOffset> Action for ActionAdjustSyncOffset<T> {
     fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
         static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
             ArgumentDefinition {
-                name: "SyncOffsetAdj",
+                name: "InstanceID",
                 direction: ArgumentDirection::IN,
-                related_state_var: Some("SyncOffsetAdj"),
+                related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
             ArgumentDefinition {
-                name: "SyncPoint",
+                name: "Adjustment",
                 direction: ArgumentDirection::IN,
-                related_state_var: Some("SyncPoint"),
+                related_state_var: Some("SyncOffset"),
             },
         ];
         &ARGS
@@ -1827,13 +1530,17 @@ impl<T: AdjustSyncOffset> Action for ActionAdjustSyncOffset<T> {
     }
 
     fn execute(&self, args: &ActionArgs) -> Result<ActionArgs, Error> {
-        let sync_offset_adj = args
-            .get("SyncOffsetAdj")
-            .ok_or(Error::ArgumentValueInvalid)?;
-        let adj: i32 = sync_offset_adj.parse().unwrap_or(0);
+        let instance_id = args
+            .get("InstanceID")
+            .unwrap_or("0")
+            .parse::<u32>()
+            .unwrap_or(0);
+        let adjustment = args.get("Adjustment").ok_or(Error::ArgumentValueInvalid)?;
+        let adj: i32 = adjustment.parse().unwrap_or(0);
         let sync_point = args.get("SyncPoint").unwrap_or("0").to_string();
         let input = AdjustSyncOffsetInput {
-            sync_offset_adj: adj,
+            instance_id,
+            adjustment: adj,
             sync_point,
         };
         self.trait_impl

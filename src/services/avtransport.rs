@@ -5,7 +5,8 @@ pub mod traits;
 pub use traits::*;
 
 use crate::gena::EventPublisher;
-use crate::types::upnp::{Services, StateSchema, StateStore, StateValue};
+use crate::state::StateVariableName;
+use crate::types::upnp::{DataType as StateValue, Services, StateSchema, StateStore};
 use std::sync::{Arc, Mutex};
 
 /// AVTransport service — owns action registry, state variables, and eventing.
@@ -22,6 +23,7 @@ use std::sync::{Arc, Mutex};
 /// 4. Builds LastChange XML propertyset via `build_last_change()`
 /// 5. Updates the LastChange state variable
 /// 6. Notifies all GENA subscribers via `EventPublisher`
+#[derive(Clone)]
 pub struct AvTransportService {
     actions: Arc<Mutex<crate::types::upnp::ActionMap>>,
     state_store: Arc<Mutex<StateStore<r#static::StateVariableName>>>,
@@ -87,24 +89,18 @@ impl AvTransportService {
         // Core transport state
         state_store.register(StateSchema {
             name: StateVariableName::TransportState,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false, // Evented via LastChange only
             default: StateValue::String("STOPPED".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::TransportStatus,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("OK".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::CurrentMediaCategory,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NO_MEDIA".to_string()),
             ..Default::default()
         });
@@ -112,48 +108,36 @@ impl AvTransportService {
         // Media identity
         state_store.register(StateSchema {
             name: StateVariableName::AVTransportURI,
-            data_type: crate::types::upnp::DataType::Uri,
-            send_events: false,
             default: StateValue::String(String::new()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::AVTransportURIMetaData,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::NextAVTransportURI,
-            data_type: crate::types::upnp::DataType::Uri,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::NextAVTransportURIMetaData,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::CurrentTrackURI,
-            data_type: crate::types::upnp::DataType::Uri,
-            send_events: false,
             default: StateValue::String(String::new()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::CurrentTrackMetaData,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
@@ -161,64 +145,48 @@ impl AvTransportService {
         // Playback position
         state_store.register(StateSchema {
             name: StateVariableName::CurrentTrack,
-            data_type: crate::types::upnp::DataType::UnsignedInt,
-            send_events: false,
             default: StateValue::Ui4(0),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::NumberOfTracks,
-            data_type: crate::types::upnp::DataType::UnsignedInt,
-            send_events: false,
             default: StateValue::Ui4(0),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::CurrentTrackDuration,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("00:00:00".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::CurrentMediaDuration,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("00:00:00".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::RelativeTimePosition,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::AbsoluteTimePosition,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::RelativeCounterPosition,
-            data_type: crate::types::upnp::DataType::Int,
-            send_events: false,
             default: StateValue::I4(i32::MAX),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::AbsoluteCounterPosition,
-            data_type: crate::types::upnp::DataType::UnsignedInt,
-            send_events: false,
             default: StateValue::Ui4(0),
             ..Default::default()
         });
@@ -226,32 +194,24 @@ impl AvTransportService {
         // Storage & capabilities
         state_store.register(StateSchema {
             name: StateVariableName::PlaybackStorageMedium,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NONE".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::RecordStorageMedium,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::PossiblePlaybackStorageMedia,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NONE".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::PossibleRecordStorageMedia,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
@@ -259,16 +219,12 @@ impl AvTransportService {
         // Play control
         state_store.register(StateSchema {
             name: StateVariableName::CurrentPlayMode,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NORMAL".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::TransportPlaySpeed,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("1".to_string()),
             ..Default::default()
         });
@@ -276,32 +232,24 @@ impl AvTransportService {
         // Recording
         state_store.register(StateSchema {
             name: StateVariableName::RecordMediumWriteStatus,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::CurrentRecordQualityMode,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::PossibleRecordQualityModes,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("NOT_IMPLEMENTED".to_string()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::DRMState,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("UNKNOWN".to_string()),
             ..Default::default()
         });
@@ -309,16 +257,12 @@ impl AvTransportService {
         // Eventing
         state_store.register(StateSchema {
             name: StateVariableName::LastChange,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: true, // Only evented variable
             default: StateValue::String(String::new()),
             ..Default::default()
         });
 
         state_store.register(StateSchema {
             name: StateVariableName::CurrentTransportActions,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String("PLAY,STOP,PAUSE,SEEK,NEXT,PREVIOUS".to_string()),
             ..Default::default()
         });
@@ -330,8 +274,6 @@ impl AvTransportService {
         // A_ARG_TYPE_InstanceID — ui4, identifies virtual transport instance
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_InstanceID,
-            data_type: crate::types::upnp::DataType::UnsignedInt,
-            send_events: false,
             default: StateValue::Ui4(0),
             argument_type: true, // Type definition, no defaultValue in SCPD
             ..Default::default()
@@ -340,8 +282,6 @@ impl AvTransportService {
         // A_ARG_TYPE_SeekMode — string, seek mode identifier
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_SeekMode,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             allowed_values: Some(vec![
                 "REL_TIME".to_string(),
@@ -361,8 +301,6 @@ impl AvTransportService {
         // A_ARG_TYPE_SeekTarget — string, seek target value
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_SeekTarget,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -371,8 +309,6 @@ impl AvTransportService {
         // A_ARG_TYPE_RecordMedium — string, record medium type
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_RecordMedium,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -381,8 +317,6 @@ impl AvTransportService {
         // A_ARG_TYPE_StreamFormat — string, stream format
         state_store.register(StateSchema {
             name: StateVariableName::A_ARG_TYPE_StreamFormat,
-            data_type: crate::types::upnp::DataType::String,
-            send_events: false,
             default: StateValue::String(String::new()),
             argument_type: true,
             ..Default::default()
@@ -408,60 +342,66 @@ impl AvTransportService {
         store.get(name).map(|v| v.clone())
     }
 
-    /// Set a state variable value. Returns error if validation fails.
+    /// Set any state variable at a specific InstanceID.
     ///
-    /// If the value actually changed (not writing the same value), this method
-    /// automatically triggers GENA events for all evented state variables:
-    /// 1. Collects all evented state variables with current values
-    /// 2. Builds LastChange XML propertyset
-    /// 3. Updates the LastChange state variable
-    /// 4. Notifies all GENA subscribers
+    /// This is the single gatekeeper method for all state mutations. It:
+    /// 1. Sets the value in StateStore (uses set_instance if var is instance-scoped)
+    /// 2. Triggers GENA events via LastChange NOTIFY
+    ///
+    /// Per UPnP-av-2.0 spec, InstanceID=0 is global/post-mix, InstanceID>0 is per-stream.
+    /// AVTransport state variables are all per-InstanceID (is_instance_scoped=true).
+    ///
+    /// Writing the same value does NOT set has_changes (per UPnP spec).
     pub fn set_state_var(
-        &mut self,
+        &self,
+        instance_id: u32,
         name: r#static::StateVariableName,
-        value: String,
-    ) -> Result<(), crate::types::upnp::Error> {
+        value: StateValue,
+    ) {
         let mut store = self.state_store.lock().unwrap();
-        store.set(name, StateValue::String(value))?;
+
+        if name.is_instance_scoped() {
+            store.set_instance(name, instance_id, value);
+        } else {
+            store.set(name, value);
+        }
         drop(store);
-        self.trigger_events();
-        Ok(())
+
+        self.trigger_events_for_instance(instance_id);
     }
 
-    /// Build the LastChange XML propertyset from all evented state variables.
+    /// Build the LastChange XML propertyset from all evented state variables for an instance.
     ///
     /// Format per UPnP-av-2.0 spec:
     /// ```xml
     /// <e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0">
     ///   <e:property>
-    ///     <LastChange>
-    ///       <Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/">
-    ///         <PropertyChange>
-    ///           <StateVariableName>new-value</StateVariableName>
-    ///         </PropertyChange>
-    ///       </Event>
-    ///     </LastChange>
+    ///     <LastChange>&lt;Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/"&gt;
+    ///       &lt;InstanceID val="N"&gt;
+    ///         &lt;TransportState&gt;PLAYING&lt;/TransportState&gt;
+    ///       &lt;/InstanceID&gt;
+    ///     &lt;/Event&gt;</LastChange>
     ///   </e:property>
     /// </e:propertyset>
     /// ```
-    fn build_last_change(&self) -> String {
+    fn build_last_change(&self, instance_id: u32) -> String {
         let store = self.state_store.lock().unwrap();
-        let evented = store.collect_evented();
+        let evented = store.collect_evented_for_instance(instance_id);
         crate::services::lastchange::build_last_change(
             "urn:schemas-upnp-org:metadata-1-0/AVT/",
             &evented,
         )
     }
 
-    /// Trigger GENA events for all evented state variables.
+    /// Trigger GENA events for all evented state variables at a specific InstanceID.
     ///
-    /// 1. Builds LastChange XML from all evented state variables
-    /// 2. Updates the LastChange state variable with the XML
+    /// 1. Builds LastChange XML from all evented vars for the instance
+    /// 2. Updates the LastChange state variable with the escaped XML
     /// 3. Notifies all subscribers via EventPublisher
-    fn trigger_events(&mut self) {
-        let last_change_xml = self.build_last_change();
+    fn trigger_events_for_instance(&self, instance_id: u32) {
+        let last_change_xml = self.build_last_change(instance_id);
 
-        // Update LastChange state variable
+        // Update LastChange state variable (global, not per-instance)
         {
             let mut store = self.state_store.lock().unwrap();
             if let Some(last_change_var) = store.get_mut(r#static::StateVariableName::LastChange) {

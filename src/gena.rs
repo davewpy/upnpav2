@@ -5,7 +5,6 @@ use std::time::Instant;
 use crate::types::upnp;
 
 /// A single subscriber to events.
-#[allow(dead_code)]
 pub struct Subscriber {
     /// Subscription UUID (uuid:xxx)
     pub sid: String,
@@ -24,7 +23,6 @@ pub struct Subscriber {
 /// Each service (AVTransport, RenderingControl, ConnectionManager) owns its own
 /// EventPublisher instance. Supports both unicast (HTTP POST) and multicast
 /// (UDP broadcast to 239.255.255.246:7900).
-#[allow(dead_code)]
 pub struct EventPublisher {
     subscribers: HashMap<String, Subscriber>,
     service_url: String,
