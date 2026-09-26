@@ -10,7 +10,7 @@ use super::AvTransportService;
 use super::r#static::{PlayMode, StateVariableName};
 use crate::services::avtransport::traits::*;
 use crate::types::upnp::{
-    Action, ActionArgs, ArgumentDefinition, ArgumentDirection, Error, StateValue,
+    Action, ActionArgs, Argument, ArgumentDirection, Error, StateValue,
 };
 
 // ===========================================================================
@@ -36,14 +36,14 @@ impl<T: Play> Action for ActionPlay<T> {
         "Play"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "Speed",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("TransportPlaySpeed"),
@@ -52,7 +52,7 @@ impl<T: Play> Action for ActionPlay<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -106,8 +106,8 @@ impl<T: Stop> Action for ActionStop<T> {
         "Stop"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -115,7 +115,7 @@ impl<T: Stop> Action for ActionStop<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -160,19 +160,19 @@ impl<T: Seek> Action for ActionSeek<T> {
         "Seek"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "Unit",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_SeekMode"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "Target",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_SeekTarget"),
@@ -181,7 +181,7 @@ impl<T: Seek> Action for ActionSeek<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -240,8 +240,8 @@ impl<T: Next> Action for ActionNext<T> {
         "Next"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -249,7 +249,7 @@ impl<T: Next> Action for ActionNext<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -294,8 +294,8 @@ impl<T: Previous> Action for ActionPrevious<T> {
         "Previous"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -303,7 +303,7 @@ impl<T: Previous> Action for ActionPrevious<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -348,19 +348,19 @@ impl<T: SetAVTransportURI> Action for ActionSetAVTransportURI<T> {
         "SetAVTransportURI"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "CurrentURI",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("AVTransportURI"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "CurrentURIMetaData",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("AVTransportURIMetaData"),
@@ -369,7 +369,7 @@ impl<T: SetAVTransportURI> Action for ActionSetAVTransportURI<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -438,8 +438,8 @@ impl<T: GetMediaInfo> Action for ActionGetMediaInfo<T> {
         "GetMediaInfo"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -447,49 +447,49 @@ impl<T: GetMediaInfo> Action for ActionGetMediaInfo<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "NrTracks",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("NumberOfTracks"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "MediaDuration",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentMediaDuration"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "CurrentURI",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("AVTransportURI"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "CurrentURIMetaData",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("AVTransportURIMetaData"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "NextURI",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("NextAVTransportURI"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "NextURIMetaData",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("NextAVTransportURIMetaData"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlayMedium",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaybackStorageMedium"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "RecordMedium",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("RecordStorageMedium"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "WriteStatus",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("RecordMediumWriteStatus"),
@@ -552,8 +552,8 @@ impl<T: GetTransportInfo> Action for ActionGetTransportInfo<T> {
         "GetTransportInfo"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -561,19 +561,19 @@ impl<T: GetTransportInfo> Action for ActionGetTransportInfo<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "CurrentTransportState",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("TransportState"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "CurrentTransportStatus",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("TransportStatus"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "CurrentSpeed",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("TransportPlaySpeed"),
@@ -624,8 +624,8 @@ impl<T: GetPositionInfo> Action for ActionGetPositionInfo<T> {
         "GetPositionInfo"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -633,44 +633,44 @@ impl<T: GetPositionInfo> Action for ActionGetPositionInfo<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "Track",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentTrack"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "TrackDuration",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentTrackDuration"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "TrackMetaData",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentTrackMetaData"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "TrackURI",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentTrackURI"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "RelTime",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("RelativeTimePosition"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "AbsTime",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("AbsoluteTimePosition"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "RelCount",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("RelativeCounterPosition"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "AbsCount",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("AbsoluteCounterPosition"),
@@ -720,8 +720,8 @@ impl<T: GetDeviceCapabilities> Action for ActionGetDeviceCapabilities<T> {
         "GetDeviceCapabilities"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -729,19 +729,19 @@ impl<T: GetDeviceCapabilities> Action for ActionGetDeviceCapabilities<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "PlayMedia",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PossiblePlaybackStorageMedia"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "RecMedia",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PossibleRecordStorageMedia"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "RecQualityModes",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PossibleRecordQualityModes"),
@@ -786,8 +786,8 @@ impl<T: GetTransportSettings> Action for ActionGetTransportSettings<T> {
         "GetTransportSettings"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -795,14 +795,14 @@ impl<T: GetTransportSettings> Action for ActionGetTransportSettings<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "PlayMode",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentPlayMode"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "RecQualityMode",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentRecordQualityMode"),
@@ -853,19 +853,19 @@ impl<T: SetNextAVTransportURI> Action for ActionSetNextAVTransportURI<T> {
         "SetNextAVTransportURI"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "NextURI",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("NextAVTransportURI"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "NextURIMetaData",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("NextAVTransportURIMetaData"),
@@ -874,7 +874,7 @@ impl<T: SetNextAVTransportURI> Action for ActionSetNextAVTransportURI<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -920,8 +920,8 @@ impl<T: Pause> Action for ActionPause<T> {
         "Pause"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -929,7 +929,7 @@ impl<T: Pause> Action for ActionPause<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -974,14 +974,14 @@ impl<T: SetPlayMode> Action for ActionSetPlayMode<T> {
         "SetPlayMode"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "NewPlayMode",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("CurrentPlayMode"),
@@ -990,7 +990,7 @@ impl<T: SetPlayMode> Action for ActionSetPlayMode<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -1038,8 +1038,8 @@ impl<T: GetCurrentTransportActions> Action for ActionGetCurrentTransportActions<
         "GetCurrentTransportActions"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -1047,8 +1047,8 @@ impl<T: GetCurrentTransportActions> Action for ActionGetCurrentTransportActions<
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "Actions",
             direction: ArgumentDirection::OUT,
             related_state_var: Some("CurrentTransportActions"),
@@ -1094,8 +1094,8 @@ impl<T: Record> Action for ActionRecord<T> {
         "Record"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -1103,7 +1103,7 @@ impl<T: Record> Action for ActionRecord<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -1138,14 +1138,14 @@ impl<T: SetRecordQualityMode> Action for ActionSetRecordQualityMode<T> {
         "SetRecordQualityMode"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "NewRecordQualityMode",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("CurrentRecordQualityMode"),
@@ -1154,7 +1154,7 @@ impl<T: SetRecordQualityMode> Action for ActionSetRecordQualityMode<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -1196,12 +1196,12 @@ impl<T: GetDRMState> Action for ActionGetDRMState<T> {
         "GetDRMState"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "DRMState",
             direction: ArgumentDirection::OUT,
             related_state_var: Some("DRMState"),
@@ -1237,14 +1237,14 @@ impl<T: GetStateVariables> Action for ActionGetStateVariables<T> {
         "GetStateVariables"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "StateVariableList",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_StateVariableList"),
@@ -1253,8 +1253,8 @@ impl<T: GetStateVariables> Action for ActionGetStateVariables<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "StateVariableValuePairs",
             direction: ArgumentDirection::OUT,
             related_state_var: Some("A_ARG_TYPE_StateVariableValuePairs"),
@@ -1320,29 +1320,29 @@ impl<T: SetStateVariables> Action for ActionSetStateVariables<T> {
         "SetStateVariables"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "AVTransportUDN",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_DeviceUDN"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "ServiceType",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_ServiceType"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "ServiceId",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_ServiceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "StateVariableValuePairs",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_StateVariableValuePairs"),
@@ -1351,8 +1351,8 @@ impl<T: SetStateVariables> Action for ActionSetStateVariables<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "StateVariableList",
             direction: ArgumentDirection::OUT,
             related_state_var: Some("A_ARG_TYPE_StateVariableList"),
@@ -1400,8 +1400,8 @@ impl<T: GetSyncOffset> Action for ActionGetSyncOffset<T> {
         "GetSyncOffset"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -1409,8 +1409,8 @@ impl<T: GetSyncOffset> Action for ActionGetSyncOffset<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "CurrentSyncOffset",
             direction: ArgumentDirection::OUT,
             related_state_var: Some("SyncOffset"),
@@ -1451,14 +1451,14 @@ impl<T: SetSyncOffset> Action for ActionSetSyncOffset<T> {
         "SetSyncOffset"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "NewSyncOffset",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("SyncOffset"),
@@ -1467,7 +1467,7 @@ impl<T: SetSyncOffset> Action for ActionSetSyncOffset<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -1509,14 +1509,14 @@ impl<T: AdjustSyncOffset> Action for ActionAdjustSyncOffset<T> {
         "AdjustSyncOffset"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "Adjustment",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("SyncOffset"),
@@ -1525,7 +1525,7 @@ impl<T: AdjustSyncOffset> Action for ActionAdjustSyncOffset<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -1567,11 +1567,11 @@ impl<T: SyncPlay> Action for ActionSyncPlay<T> {
         "SyncPlay"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -1600,11 +1600,11 @@ impl<T: SyncStop> Action for ActionSyncStop<T> {
         "SyncStop"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -1633,11 +1633,11 @@ impl<T: SyncPause> Action for ActionSyncPause<T> {
         "SyncPause"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
         &[]
     }
 
@@ -1666,29 +1666,29 @@ impl<T: SetStaticPlaylist> Action for ActionSetStaticPlaylist<T> {
         "SetStaticPlaylist"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistData",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_PlaylistData"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistDataLength",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_PlaylistDataLength"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistOffset",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_PlaylistOffset"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistTotalLength",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_PlaylistTotalLength"),
@@ -1697,19 +1697,19 @@ impl<T: SetStaticPlaylist> Action for ActionSetStaticPlaylist<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "PlaylistDataLength",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("A_ARG_TYPE_PlaylistDataLength"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistOffset",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("A_ARG_TYPE_PlaylistOffset"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistTotalLength",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("A_ARG_TYPE_PlaylistTotalLength"),
@@ -1788,49 +1788,49 @@ impl<T: SetStreamingPlaylist> Action for ActionSetStreamingPlaylist<T> {
         "SetStreamingPlaylist"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "InstanceID",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_InstanceID"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistData",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_PlaylistData"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistDataLength",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_PlaylistDataLength"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistOffset",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_PlaylistOffset"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistTotalLength",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_PlaylistTotalLength"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistMIMEType",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("PlaylistMIMEType"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistExtendedType",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("PlaylistExtendedType"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistStep",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_PlaylistStep"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistType",
                 direction: ArgumentDirection::IN,
                 related_state_var: Some("A_ARG_TYPE_PlaylistType"),
@@ -1839,19 +1839,19 @@ impl<T: SetStreamingPlaylist> Action for ActionSetStreamingPlaylist<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "PlaylistDataLength",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("A_ARG_TYPE_PlaylistDataLength"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistOffset",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("A_ARG_TYPE_PlaylistOffset"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistTotalLength",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("A_ARG_TYPE_PlaylistTotalLength"),
@@ -1938,8 +1938,8 @@ impl<T: GetPlaylistInfo> Action for ActionGetPlaylistInfo<T> {
         "GetPlaylistInfo"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -1947,49 +1947,49 @@ impl<T: GetPlaylistInfo> Action for ActionGetPlaylistInfo<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "PlaylistData",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaylistData"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistDataLength",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaylistDataLength"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistOffset",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaylistOffset"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistTotalLength",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaylistTotalLength"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistMIMEType",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaylistMIMEType"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistExtendedType",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaylistExtendedType"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistStep",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaylistStep"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistType",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaylistType"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlaylistInfo",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaylistInfo"),
@@ -2052,8 +2052,8 @@ impl<T: GetMediaInfoExt> Action for ActionGetMediaInfoExt<T> {
         "GetMediaInfo_Ext"
     }
 
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[ArgumentDefinition {
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
             name: "InstanceID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_InstanceID"),
@@ -2061,104 +2061,104 @@ impl<T: GetMediaInfoExt> Action for ActionGetMediaInfoExt<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>] {
-        static ARGS: &[ArgumentDefinition<&'static str, &'static str>] = &[
-            ArgumentDefinition {
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+        static ARGS: &[Argument<&'static str, &'static str>] = &[
+            Argument {
                 name: "NrTracks",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("NumberOfTracks"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "MediaDuration",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentMediaDuration"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "CurrentURI",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("AVTransportURI"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "CurrentURIMetaData",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("AVTransportURIMetaData"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "NextURI",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("NextAVTransportURI"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "NextURIMetaData",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("NextAVTransportURIMetaData"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "PlayMedium",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("PlaybackStorageMedium"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "RecordMedium",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("RecordStorageMedium"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "WriteStatus",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("RecordMediumWriteStatus"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "CurrentTrackMetaData",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentTrackMetaData"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "TrackDuration",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentTrackDuration"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "TrackURI",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("CurrentTrackURI"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "RelTime",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("RelativeTimePosition"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "AbsTime",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("AbsoluteTimePosition"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "RelCount",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("RelativeCounterPosition"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "AbsCount",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("AbsoluteCounterPosition"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "TransportState",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("TransportState"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "TransportStatus",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("TransportStatus"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "TransportSpeed",
                 direction: ArgumentDirection::OUT,
                 related_state_var: Some("TransportPlaySpeed"),
             },
-            ArgumentDefinition {
+            Argument {
                 name: "TrackNavEnabled",
                 direction: ArgumentDirection::OUT,
                 related_state_var: None,

@@ -275,26 +275,6 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-#[derive(Debug, Clone)]
-pub enum ArgumentDirection {
-    IN,
-    OUT,
-}
-
-#[derive(Debug, Clone)]
-pub struct ArgumentDefinition<Arg, S> {
-    pub name: Arg,
-    pub direction: ArgumentDirection,
-    pub related_state_var: Option<S>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ActionDefinition<A, Arg, S> {
-    pub name: A,
-    pub in_args: Vec<ArgumentDefinition<Arg, S>>,
-    pub out_args: Vec<ArgumentDefinition<Arg, S>>,
-}
-
 // ---------------------------------------------------------------------------
 // DataType — unified type + value enum
 // ---------------------------------------------------------------------------
@@ -409,6 +389,26 @@ impl std::fmt::Display for DataType {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ArgumentDirection {
+    IN,
+    OUT,
+}
+
+#[derive(Debug, Clone)]
+pub struct Argument<Arg, S> {
+    pub name: Arg,
+    pub direction: ArgumentDirection,
+    pub related_state_var: Option<S>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ActionDefinition<A, Arg, S> {
+    pub name: A,
+    pub in_args: Vec<Argument<Arg, S>>,
+    pub out_args: Vec<Argument<Arg, S>>,
+}
+
 // Re-export state management types from state module
 pub use crate::state::{StateSchema, StateStore, StateVariable, state_def};
 
@@ -482,10 +482,10 @@ pub trait Action: Send + Sync {
     fn name(&self) -> &'static str;
 
     /// Returns the IN argument definitions for this action.
-    fn in_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>];
+    fn in_args(&self) -> &[Argument<&'static str, &'static str>];
 
     /// Returns the OUT argument definitions for this action.
-    fn out_args(&self) -> &[ArgumentDefinition<&'static str, &'static str>];
+    fn out_args(&self) -> &[Argument<&'static str, &'static str>];
 
     /// Execute the action with the given arguments.
     ///
@@ -522,19 +522,19 @@ impl ActionMap {
     /// via the `Action` trait methods. No separate schema parameters needed.
     pub fn register(&mut self, action: Box<dyn Action>) {
         let name = action.name().to_string();
-        let in_args: Vec<ArgumentDefinition<String, String>> = action
+        let in_args: Vec<Argument<String, String>> = action
             .in_args()
             .iter()
-            .map(|a| ArgumentDefinition {
+            .map(|a| Argument {
                 name: a.name.to_string(),
                 direction: a.direction.clone(),
                 related_state_var: a.related_state_var.map(String::from),
             })
             .collect();
-        let out_args: Vec<ArgumentDefinition<String, String>> = action
+        let out_args: Vec<Argument<String, String>> = action
             .out_args()
             .iter()
-            .map(|a| ArgumentDefinition {
+            .map(|a| Argument {
                 name: a.name.to_string(),
                 direction: a.direction.clone(),
                 related_state_var: a.related_state_var.map(String::from),
