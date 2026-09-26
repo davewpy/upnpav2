@@ -303,15 +303,15 @@ impl<S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariabl
         let mut xml = String::new();
         xml.push_str("  <actionList>\n");
         let actions = self.actions.lock().unwrap();
-        for def in actions.action_definitions() {
+        for (name, action) in actions.iter() {
             xml.push_str("    <action>\n");
-            xml.push_str(&format!("      <name>{}</name>\n", escape_xml(&def.name)));
+            xml.push_str(&format!("      <name>{}</name>\n", escape_xml(name)));
             xml.push_str("      <argumentList>\n");
-            for arg in &def.in_args {
+            for arg in action.in_args() {
                 xml.push_str("        <argument>\n");
                 xml.push_str(&format!(
                     "          <name>{}</name>\n",
-                    escape_xml(&arg.name)
+                    escape_xml(arg.name)
                 ));
                 xml.push_str("          <direction>in</direction>\n");
                 if let Some(var) = &arg.related_state_var {
@@ -322,11 +322,11 @@ impl<S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariabl
                 }
                 xml.push_str("        </argument>\n");
             }
-            for arg in &def.out_args {
+            for arg in action.out_args() {
                 xml.push_str("        <argument>\n");
                 xml.push_str(&format!(
                     "          <name>{}</name>\n",
-                    escape_xml(&arg.name)
+                    escape_xml(arg.name)
                 ));
                 xml.push_str("          <direction>out</direction>\n");
                 if let Some(var) = &arg.related_state_var {
@@ -356,15 +356,15 @@ impl<S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariabl
             std::collections::HashSet::new();
         {
             let actions = self.actions.lock().unwrap();
-            for def in actions.action_definitions() {
-                for arg in &def.in_args {
+            for (_, action) in actions.iter() {
+                for arg in action.in_args() {
                     if let Some(var) = &arg.related_state_var {
-                        referenced_vars.insert(var.clone());
+                        referenced_vars.insert(var.to_string());
                     }
                 }
-                for arg in &def.out_args {
+                for arg in action.out_args() {
                     if let Some(var) = &arg.related_state_var {
-                        referenced_vars.insert(var.clone());
+                        referenced_vars.insert(var.to_string());
                     }
                 }
             }

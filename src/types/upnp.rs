@@ -153,15 +153,15 @@ impl Services {
 /// At compile-time, the variant name is the type; at runtime, the inner field is the value.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DataType {
-    Ui1(u8),       // ui1
-    Ui2(u16),      // ui2
-    Ui4(u32),      // ui4
-    I1(i8),        // i1
-    I2(i16),       // i2
-    I4(i32),       // i4
-    I8(i64),       // i8
-    Float(f32),    // r4 / float
-    Double(f64),   // r8
+    Ui1(u8),     // ui1
+    Ui2(u16),    // ui2
+    Ui4(u32),    // ui4
+    I1(i8),      // i1
+    I2(i16),     // i2
+    I4(i32),     // i4
+    I8(i64),     // i8
+    Float(f32),  // r4 / float
+    Double(f64), // r8
     Decimal(String),
     Char(char),
     String(String),
@@ -395,18 +395,15 @@ pub enum ArgumentDirection {
     OUT,
 }
 
+/// Schema definition for a single UPnP action argument.
+///
+/// All fields are static — known at compile time. This struct is used
+/// by the `Action` trait to expose schema metadata without allocations.
 #[derive(Debug, Clone)]
-pub struct Argument<Arg, S> {
-    pub name: Arg,
+pub struct Argument {
+    pub name: &'static str,
     pub direction: ArgumentDirection,
-    pub related_state_var: Option<S>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ActionDefinition<A, Arg, S> {
-    pub name: A,
-    pub in_args: Vec<Argument<Arg, S>>,
-    pub out_args: Vec<Argument<Arg, S>>,
+    pub related_state_var: Option<&'static str>,
 }
 
 // Re-export state management types from state module
@@ -474,20 +471,19 @@ impl ActionArgs {
 /// Trait for UPnP action implementations.
 ///
 /// Each concrete action (Play, SetVolume, GetBrightness, etc.) implements this trait.
-/// The action carries its own schema metadata (name, in/out args) so that
-/// `ActionMap` and SCPD generation derive everything from the registered action.
-/// No manual tracking needed — the action IS the source of truth.
+/// Schema methods take `&self` to allow dyn compatibility (`Box<dyn Action>`).
+/// The `execute` method also takes `&self` to access per-instance state (trait impls, services).
 pub trait Action: Send + Sync {
     /// Returns the UPnP action name (e.g. "Play", "SetVolume", "GetTransportInfo").
     fn name(&self) -> &'static str;
 
-    /// Returns the IN argument definitions for this action.
-    fn in_args(&self) -> &[Argument<&'static str, &'static str>];
+    /// Returns the IN argument schema definitions for this action.
+    fn in_args(&self) -> &'static [Argument];
 
-    /// Returns the OUT argument definitions for this action.
-    fn out_args(&self) -> &[Argument<&'static str, &'static str>];
+    /// Returns the OUT argument schema definitions for this action.
+    fn out_args(&self) -> &'static [Argument];
 
-    /// Execute the action with the given arguments.
+    /// Execute the action with the given runtime arguments.
     ///
     /// Returns OUT arguments on success, or a UPnP error code on failure.
     fn execute(&self, args: &ActionArgs) -> Result<ActionArgs, Error>;
@@ -503,8 +499,7 @@ pub trait Action: Send + Sync {
 /// dispatch incoming SOAP requests to the correct action.
 pub struct ActionMap {
     namespace: Services,
-    actions: Vec<(String, Box<dyn Action>)>,
-    action_defs: Vec<ActionDefinition<String, String, String>>,
+    actions: Vec<(&'static str, Box<dyn Action>)>,
 }
 
 impl ActionMap {
@@ -512,58 +507,30 @@ impl ActionMap {
         Self {
             namespace,
             actions: Vec::new(),
-            action_defs: Vec::new(),
         }
     }
 
-    /// Register an action.
+    /// Register an action implementation.
     ///
-    /// Schema metadata (name, in/out args) is extracted from the action itself
-    /// via the `Action` trait methods. No separate schema parameters needed.
-    pub fn register(&mut self, action: Box<dyn Action>) {
-        let name = action.name().to_string();
-        let in_args: Vec<Argument<String, String>> = action
-            .in_args()
-            .iter()
-            .map(|a| Argument {
-                name: a.name.to_string(),
-                direction: a.direction.clone(),
-                related_state_var: a.related_state_var.map(String::from),
-            })
-            .collect();
-        let out_args: Vec<Argument<String, String>> = action
-            .out_args()
-            .iter()
-            .map(|a| Argument {
-                name: a.name.to_string(),
-                direction: a.direction.clone(),
-                related_state_var: a.related_state_var.map(String::from),
-            })
-            .collect();
-        self.actions.push((name.clone(), action));
-        self.action_defs.push(ActionDefinition {
-            name,
-            in_args,
-            out_args,
-        });
+    /// The action name is extracted via `Action::name()` — no cloning needed.
+    pub fn register(&mut self, mut action: Box<dyn Action>) {
+        let name = action.name();
+        self.actions.push((name, action));
     }
 
-    /// Get an action by name.
+    /// Get an action by name for dispatching SOAP requests.
     pub fn get(&self, name: &str) -> Option<&dyn Action> {
         self.actions
             .iter()
-            .find(|(n, _)| n == name)
+            .find(|(n, _)| *n == name)
             .map(|(_, a)| a.as_ref())
     }
 
-    /// Get all action names (for SCPD generation).
-    pub fn action_names(&self) -> Vec<String> {
-        self.actions.iter().map(|(n, _)| n.clone()).collect()
-    }
-
-    /// Get all action definitions (for SCPD generation).
-    pub fn action_definitions(&self) -> &[ActionDefinition<String, String, String>] {
-        &self.action_defs
+    /// Iterate over all registered actions for SCPD generation.
+    pub fn iter(&self) -> impl Iterator<Item = (&'_ str, &'_ dyn Action)> {
+        self.actions
+            .iter()
+            .map(|(name, action)| (*name, action.as_ref()))
     }
 
     /// Get the service namespace (full URN string).

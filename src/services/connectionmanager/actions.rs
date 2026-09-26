@@ -31,12 +31,12 @@ impl<T: GetProtocolInfo> Action for ActionGetProtocolInfo<T> {
         "GetProtocolInfo"
     }
 
-    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+    fn in_args(&self) -> &'static [Argument] {
         &[]
     }
 
-    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
-        static ARGS: &[Argument<&'static str, &'static str>] = &[
+    fn out_args(&self) -> &'static [Argument] {
+        static ARGS: &'static [Argument] = &[
             Argument {
                 name: "Source",
                 direction: ArgumentDirection::OUT,
@@ -80,12 +80,12 @@ impl<T: GetCurrentConnectionIDs> Action for ActionGetCurrentConnectionIDs<T> {
         "GetCurrentConnectionIDs"
     }
 
-    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+    fn in_args(&self) -> &'static [Argument] {
         &[]
     }
 
-    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
-        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
+    fn out_args(&self) -> &'static [Argument] {
+        static ARGS: &'static [Argument] = &[Argument {
             name: "ConnectionIDs",
             direction: ArgumentDirection::OUT,
             related_state_var: Some("CurrentConnectionIDs"),
@@ -121,8 +121,8 @@ impl<T: GetCurrentConnectionInfo> Action for ActionGetCurrentConnectionInfo<T> {
         "GetCurrentConnectionInfo"
     }
 
-    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
-        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
+    fn in_args(&self) -> &'static [Argument] {
+        static ARGS: &'static [Argument] = &[Argument {
             name: "ConnectionID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_ConnectionID"),
@@ -130,8 +130,8 @@ impl<T: GetCurrentConnectionInfo> Action for ActionGetCurrentConnectionInfo<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
-        static ARGS: &[Argument<&'static str, &'static str>] = &[
+    fn out_args(&self) -> &'static [Argument] {
+        static ARGS: &'static [Argument] = &[
             Argument {
                 name: "RcsID",
                 direction: ArgumentDirection::OUT,
@@ -223,12 +223,12 @@ impl<T: GetFeatureList> Action for ActionGetFeatureList<T> {
         "GetFeatureList"
     }
 
-    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
+    fn in_args(&self) -> &'static [Argument] {
         &[]
     }
 
-    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
-        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
+    fn out_args(&self) -> &'static [Argument] {
+        static ARGS: &'static [Argument] = &[Argument {
             name: "FeatureList",
             direction: ArgumentDirection::OUT,
             related_state_var: Some("FeatureList"),
@@ -282,8 +282,8 @@ impl<T: PrepareForConnection> Action for ActionPrepareForConnection<T> {
         "PrepareForConnection"
     }
 
-    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
-        static ARGS: &[Argument<&'static str, &'static str>] = &[
+    fn in_args(&self) -> &'static [Argument] {
+        static ARGS: &'static [Argument] = &[
             Argument {
                 name: "RemoteProtocolInfo",
                 direction: ArgumentDirection::IN,
@@ -308,8 +308,8 @@ impl<T: PrepareForConnection> Action for ActionPrepareForConnection<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
-        static ARGS: &[Argument<&'static str, &'static str>] = &[
+    fn out_args(&self) -> &'static [Argument] {
+        static ARGS: &'static [Argument] = &[
             Argument {
                 name: "ConnectionID",
                 direction: ArgumentDirection::OUT,
@@ -423,8 +423,8 @@ impl<T: ConnectionComplete> Action for ActionConnectionComplete<T> {
         "ConnectionComplete"
     }
 
-    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
-        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
+    fn in_args(&self) -> &'static [Argument] {
+        static ARGS: &'static [Argument] = &[Argument {
             name: "ConnectionID",
             direction: ArgumentDirection::IN,
             related_state_var: Some("A_ARG_TYPE_ConnectionID"),
@@ -432,7 +432,7 @@ impl<T: ConnectionComplete> Action for ActionConnectionComplete<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
+    fn out_args(&self) -> &'static [Argument] {
         &[]
     }
 
@@ -477,8 +477,8 @@ impl<T: GetRendererItemInfo> Action for ActionGetRendererItemInfo<T> {
         "GetRendererItemInfo"
     }
 
-    fn in_args(&self) -> &[Argument<&'static str, &'static str>] {
-        static ARGS: &[Argument<&'static str, &'static str>] = &[
+    fn in_args(&self) -> &'static [Argument] {
+        static ARGS: &'static [Argument] = &[
             Argument {
                 name: "ItemInfoFilter",
                 direction: ArgumentDirection::IN,
@@ -493,8 +493,8 @@ impl<T: GetRendererItemInfo> Action for ActionGetRendererItemInfo<T> {
         &ARGS
     }
 
-    fn out_args(&self) -> &[Argument<&'static str, &'static str>] {
-        static ARGS: &[Argument<&'static str, &'static str>] = &[Argument {
+    fn out_args(&self) -> &'static [Argument] {
+        static ARGS: &'static [Argument] = &[Argument {
             name: "ItemRenderingInfoList",
             direction: ArgumentDirection::OUT,
             related_state_var: Some("A_ARG_TYPE_RenderingInfoList"),
