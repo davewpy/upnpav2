@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use crate::scpd::ScpdHandler;
 use crate::soap::SoapHandler;
@@ -231,13 +232,13 @@ impl DeviceConfig {
     /// Start the UPnP device — SSDP, HTTP server with all handlers, and serve.
     ///
     /// Takes the SsdpDevice built at start() time from runtime network info,
-    /// and the three service instances for SOAP/SCPD/eventing handlers.
+    /// and Arc handles to the three service instances for SOAP/SCPD/eventing handlers.
     pub async fn start(
         &self,
         ssdp: SsdpDevice,
-        av_transport: crate::services::avtransport::AvTransportService,
-        connection_manager: crate::services::connectionmanager::ConnectionManagerService,
-        rendering_control: crate::services::renderingcontrol::RenderingControlService,
+        av_transport: &Arc<crate::services::avtransport::AvTransportService>,
+        connection_manager: &Arc<crate::services::connectionmanager::ConnectionManagerService>,
+        rendering_control: &Arc<crate::services::renderingcontrol::RenderingControlService>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // Start SSDP discovery
         let _ssdp_server = crate::ssdp::start(ssdp.clone());
