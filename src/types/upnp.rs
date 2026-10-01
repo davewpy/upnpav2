@@ -151,8 +151,12 @@ impl Services {
 ///
 /// Unified enum: each variant carries both the type tag AND its value.
 /// At compile-time, the variant name is the type; at runtime, the inner field is the value.
+///
+/// Domain enum variants (TransportState, PlayMode, StorageMedium, etc.) provide
+/// compile-time safety — replacing the previous catch-all String("...") pattern.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DataType {
+    // ── Numeric types (UPnP §4.2) ──────────────────────────────────────
     Ui1(u8),     // ui1
     Ui2(u16),    // ui2
     Ui4(u32),    // ui4
@@ -163,10 +167,12 @@ pub enum DataType {
     Float(f32),  // r4 / float
     Double(f64), // r8
     Decimal(String),
+    // ── Text types (UPnP §4.2) ────────────────────────────────────────
     Char(char),
-    String(String),
+    String(String), // Free-form strings: URIs, metadata, durations, etc.
     Date(String),
     DateTime(String),
+    // ── Binary types (UPnP §4.2) ──────────────────────────────────────
     Boolean(bool),
     Base64(String),
     HexBinary(String),
@@ -200,6 +206,7 @@ impl DataType {
     /// Returns the UPnP wire-format type name for SCPD XML generation.
     pub fn as_str(&self) -> &'static str {
         match self {
+            // Numeric types
             Self::Ui1(_) => "ui1",
             Self::Ui2(_) => "ui2",
             Self::Ui4(_) => "ui4",
@@ -210,10 +217,12 @@ impl DataType {
             Self::Float(_) => "r4",
             Self::Double(_) => "r8",
             Self::Decimal(_) => "number",
+            // Text types
             Self::Char(_) => "char",
             Self::String(_) => "string",
             Self::Date(_) => "date",
             Self::DateTime(_) => "dateTime",
+            // Binary/boolean types
             Self::Boolean(_) => "boolean",
             Self::Base64(_) => "bin.base64",
             Self::HexBinary(_) => "bin.hex",
@@ -315,6 +324,7 @@ impl DataType {
     /// Convert to UPnP string representation for SOAP/LastChange.
     pub fn as_value_str(&self) -> String {
         match self {
+            // Numeric types
             Self::Ui1(v) => v.to_string(),
             Self::Ui2(v) => v.to_string(),
             Self::Ui4(v) => v.to_string(),
@@ -325,10 +335,12 @@ impl DataType {
             Self::Float(v) => format!("{:.6}", v),
             Self::Double(v) => format!("{:.15}", v),
             Self::Decimal(v) => v.clone(),
+            // Text types
             Self::Char(v) => v.to_string(),
             Self::String(v) => v.clone(),
             Self::Date(v) => v.clone(),
             Self::DateTime(v) => v.clone(),
+            // Binary/boolean types
             Self::Boolean(v) => {
                 if *v {
                     "1".to_string()

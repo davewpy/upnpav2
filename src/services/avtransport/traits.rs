@@ -5,7 +5,7 @@
 /// No UPnP protocol knowledge required.
 use std::fmt::Display;
 
-use super::r#static::{PlayMode, StorageMedium, TransportState, TransportStatus};
+use super::r#static as av_static;
 
 // ===========================================================================
 // Input Types - library-owned, application receives these in trait methods
@@ -86,7 +86,7 @@ pub struct GetTransportSettingsInput {
 #[derive(Debug, Clone)]
 pub struct SetPlayModeInput {
     pub instance_id: u32,
-    pub play_mode: PlayMode,
+    pub play_mode: av_static::PlayMode,
 }
 
 #[derive(Debug, Clone)]
@@ -183,15 +183,15 @@ pub struct GetMediaInfoOutput {
     pub current_uri_metadata: String,
     pub next_uri: String,
     pub next_uri_metadata: String,
-    pub play_medium: StorageMedium,
-    pub record_medium: StorageMedium,
-    pub write_status: super::r#static::RecordMediumWriteStatus,
+    pub play_medium: av_static::StorageMedium,
+    pub record_medium: av_static::StorageMedium,
+    pub write_status: av_static::RecordMediumWriteStatus,
 }
 
 #[derive(Debug, Clone)]
 pub struct GetTransportInfoOutput {
-    pub transport_state: TransportState,
-    pub transport_status: TransportStatus,
+    pub transport_state: av_static::TransportState,
+    pub transport_status: av_static::TransportStatus,
     pub play_speed: String,
 }
 
@@ -216,7 +216,7 @@ pub struct GetDeviceCapabilitiesOutput {
 
 #[derive(Debug, Clone)]
 pub struct GetTransportSettingsOutput {
-    pub play_mode: PlayMode,
+    pub play_mode: av_static::PlayMode,
     pub rec_quality_mode: String,
 }
 
@@ -299,9 +299,9 @@ pub struct GetMediaInfoExtOutput {
     pub current_uri_metadata: String,
     pub next_uri: String,
     pub next_uri_metadata: String,
-    pub play_medium: StorageMedium,
-    pub record_medium: StorageMedium,
-    pub write_status: super::r#static::RecordMediumWriteStatus,
+    pub play_medium: av_static::StorageMedium,
+    pub record_medium: av_static::StorageMedium,
+    pub write_status: av_static::RecordMediumWriteStatus,
     pub current_track_metadata: String,
     pub track_duration: String,
     pub track_uri: String,
@@ -309,8 +309,8 @@ pub struct GetMediaInfoExtOutput {
     pub abs_time: String,
     pub rel_count: i32,
     pub abs_count: u32,
-    pub transport_state: TransportState,
-    pub transport_status: TransportStatus,
+    pub transport_state: av_static::TransportState,
+    pub transport_status: av_static::TransportStatus,
     pub transport_speed: String,
     pub track_nav_enabled: bool,
 }

@@ -1,11 +1,13 @@
 // ===========================================================================
-// UPnP AVTransport Domain Enums
+// UPnP AVTransport Service Static Definitions
 // ===========================================================================
-
-use crate::types::upnp::ServiceVersion;
-
 /// AVTransport service version
+pub use crate::types::upnp::ServiceVersion;
 pub const V3: ServiceVersion = ServiceVersion::V3;
+
+// ===========================================================================
+// Domain Enums — per UPnP-av-AVTransport-v3 spec §4.1 allowedValueList
+// ===========================================================================
 
 /// Transport state per UPnP-av-AVTransport-v3 spec §4.1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
