@@ -8,7 +8,8 @@ use std::sync::Arc;
 
 use super::r#static::Direction;
 use crate::services::connectionmanager::traits::*;
-use crate::types::upnp::{Action, ActionArgs, Argument, ArgumentDirection, Error};
+use crate::types::{Action, ActionArgs, Argument, ArgumentDirection};
+use crate::types::upnp::Error;
 
 // ===========================================================================
 // Required Actions (R)

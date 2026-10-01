@@ -17,4 +17,3 @@ pub use scpd::{DescriptionHandler};
 pub use services::{avtransport, connectionmanager, renderingcontrol};
 pub use soap::{build_fault, build_response, parse_request};
 pub use ssdp::{Server, start};
-pub use state::{StateSchema, StateVariable, StateStore, state_def};

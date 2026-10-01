@@ -4,11 +4,11 @@ pub mod traits;
 
 pub use traits::*;
 
+use self::r#static::V3;
 use crate::gena::EventPublisher;
-use crate::{
-    connectionmanager::r#static::V3,
-    types::upnp::{Action, ActionMap, Services, StateSchema, StateStore, StateValue},
-};
+use crate::state::StateStore;
+use crate::types::upnp::{DataType, Services};
+use crate::types::{Action, ActionMap};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -122,7 +122,7 @@ impl ConnectionManagerService {
         let mut store = self.state_store.lock().unwrap();
         let _ = store.set(
             r#static::StateVariableName::CurrentConnectionIDs,
-            StateValue::String(connection_id.to_string()),
+            DataType::String(connection_id.to_string()),
         );
 
         Ok(())
@@ -146,7 +146,7 @@ impl ConnectionManagerService {
         let remaining_ids: Vec<String> = table.keys().map(|id| id.to_string()).collect();
         let _ = store.set(
             r#static::StateVariableName::CurrentConnectionIDs,
-            StateValue::String(remaining_ids.join(",")),
+            DataType::String(remaining_ids.join(",")),
         );
 
         Ok(())
@@ -198,141 +198,7 @@ impl ConnectionManagerService {
 
     /// Initialize all ConnectionManager state variables per UPnP-av-ConnectionManager-v3 spec §4.2.
     fn init_state_vars(state_store: &mut StateStore<r#static::StateVariableName>) {
-        use r#static::StateVariableName;
-
-        // SourceProtocolInfo — CSV of protocol info entries (NOT evented per spec)
-        state_store.register(StateSchema {
-            name: StateVariableName::SourceProtocolInfo,
-            default: StateValue::String(String::new()),
-            ..Default::default()
-        });
-
-        // SinkProtocolInfo — CSV of protocol info entries (NOT evented per spec)
-        state_store.register(StateSchema {
-            name: StateVariableName::SinkProtocolInfo,
-            default: StateValue::String(String::new()),
-            ..Default::default()
-        });
-
-        // CurrentConnectionIDs — CSV of active ConnectionID values (NOT evented per spec)
-        state_store.register(StateSchema {
-            name: StateVariableName::CurrentConnectionIDs,
-            default: StateValue::String("0".to_string()),
-            ..Default::default()
-        });
-
-        // FeatureList — Features XML Document
-        state_store.register(StateSchema {
-            name: StateVariableName::FeatureList,
-            default: StateValue::String(String::new()),
-            ..Default::default()
-        });
-
-        // ClockUpdateID — ui4, monotonic counter
-        state_store.register(StateSchema {
-            name: StateVariableName::ClockUpdateID,
-            default: StateValue::Ui4(0),
-            ..Default::default()
-        });
-
-        // DeviceClockInfoUpdates — XML document (directly evented per spec §4.2)
-        state_store.register(StateSchema {
-            name: StateVariableName::DeviceClockInfoUpdates,
-            default: StateValue::String(String::new()),
-            ..Default::default()
-        });
-
-        // =========================================================================
-        // A_ARG_TYPE variables — type definitions for action arguments
-        // =========================================================================
-
-        // A_ARG_TYPE_ConnectionStatus — allowed values per spec §4.2
-        state_store.register(StateSchema {
-            name: StateVariableName::A_ARG_TYPE_ConnectionStatus,
-            default: StateValue::String(String::new()),
-            allowed_values: Some(vec![
-                "OK".to_string(),
-                "ContentFormatMismatch".to_string(),
-                "InsufficientBandwidth".to_string(),
-                "UnreliableChannel".to_string(),
-                "Unknown".to_string(),
-            ]),
-            argument_type: true,
-            ..Default::default()
-        });
-
-        // A_ARG_TYPE_ConnectionManager — UDN/serviceId reference
-        state_store.register(StateSchema {
-            name: StateVariableName::A_ARG_TYPE_ConnectionManager,
-            default: StateValue::String(String::new()),
-            argument_type: true,
-            ..Default::default()
-        });
-
-        // A_ARG_TYPE_Direction — Input or Output
-        state_store.register(StateSchema {
-            name: StateVariableName::A_ARG_TYPE_Direction,
-            default: StateValue::String(String::new()),
-            allowed_values: Some(vec!["Input".to_string(), "Output".to_string()]),
-            argument_type: true,
-            ..Default::default()
-        });
-
-        // A_ARG_TYPE_ProtocolInfo — protocol info string format
-        state_store.register(StateSchema {
-            name: StateVariableName::A_ARG_TYPE_ProtocolInfo,
-            default: StateValue::String(String::new()),
-            argument_type: true,
-            ..Default::default()
-        });
-
-        // A_ARG_TYPE_ConnectionID — i4, connection identifier
-        state_store.register(StateSchema {
-            name: StateVariableName::A_ARG_TYPE_ConnectionID,
-            default: StateValue::I4(-1),
-            argument_type: true,
-            ..Default::default()
-        });
-
-        // A_ARG_TYPE_AVTransportID — i4, AVTransport instance ID
-        state_store.register(StateSchema {
-            name: StateVariableName::A_ARG_TYPE_AVTransportID,
-            default: StateValue::I4(-1),
-            argument_type: true,
-            ..Default::default()
-        });
-
-        // A_ARG_TYPE_RcsID — i4, RenderingControl instance ID
-        state_store.register(StateSchema {
-            name: StateVariableName::A_ARG_TYPE_RcsID,
-            default: StateValue::I4(-1),
-            argument_type: true,
-            ..Default::default()
-        });
-
-        // A_ARG_TYPE_ItemInfoFilter — CSV of property specifiers
-        state_store.register(StateSchema {
-            name: StateVariableName::A_ARG_TYPE_ItemInfoFilter,
-            default: StateValue::String(String::new()),
-            argument_type: true,
-            ..Default::default()
-        });
-
-        // A_ARG_TYPE_Result — DIDL-Lite XML document
-        state_store.register(StateSchema {
-            name: StateVariableName::A_ARG_TYPE_Result,
-            default: StateValue::String(String::new()),
-            argument_type: true,
-            ..Default::default()
-        });
-
-        // A_ARG_TYPE_RenderingInfoList — XML rendering info
-        state_store.register(StateSchema {
-            name: StateVariableName::A_ARG_TYPE_RenderingInfoList,
-            default: StateValue::String(String::new()),
-            argument_type: true,
-            ..Default::default()
-        });
+        state_store.register_batch(r#static::STATE_VARIABLE_SCHEMAS.to_vec());
     }
 
     /// Register a trait implementation for the given action name.
@@ -349,7 +215,7 @@ impl ConnectionManagerService {
     pub fn get_state_var(
         &self,
         name: r#static::StateVariableName,
-    ) -> Result<crate::types::upnp::StateValue, crate::types::upnp::Error> {
+    ) -> Result<crate::types::upnp::DataType, crate::types::upnp::Error> {
         let store = self.state_store.lock().unwrap();
         store.get_owned(name)
     }
@@ -358,7 +224,7 @@ impl ConnectionManagerService {
     pub fn get_state_var_mut(
         &mut self,
         name: r#static::StateVariableName,
-    ) -> Option<crate::types::upnp::StateVariable> {
+    ) -> Option<crate::types::statevariable::StateVariableType> {
         let store = self.state_store.lock().unwrap();
         store.get_mut_owned(name)
     }
@@ -378,7 +244,7 @@ impl ConnectionManagerService {
         &self,
         _instance_id: u32,
         name: r#static::StateVariableName,
-        value: StateValue,
+        value: DataType,
     ) {
         let mut store = self.state_store.lock().unwrap();
         store.set(name, value);

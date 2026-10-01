@@ -356,64 +356,208 @@ impl std::fmt::Display for StateVariableName {
     }
 }
 
-impl crate::state::StateVariableName for StateVariableName {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Self::SourceProtocolInfo => "SourceProtocolInfo",
-            Self::SinkProtocolInfo => "SinkProtocolInfo",
-            Self::CurrentConnectionIDs => "CurrentConnectionIDs",
-            Self::FeatureList => "FeatureList",
-            Self::ClockUpdateID => "ClockUpdateID",
-            Self::DeviceClockInfoUpdates => "DeviceClockInfoUpdates",
-            Self::A_ARG_TYPE_ConnectionStatus => "A_ARG_TYPE_ConnectionStatus",
-            Self::A_ARG_TYPE_ConnectionManager => "A_ARG_TYPE_ConnectionManager",
-            Self::A_ARG_TYPE_Direction => "A_ARG_TYPE_Direction",
-            Self::A_ARG_TYPE_ProtocolInfo => "A_ARG_TYPE_ProtocolInfo",
-            Self::A_ARG_TYPE_ConnectionID => "A_ARG_TYPE_ConnectionID",
-            Self::A_ARG_TYPE_AVTransportID => "A_ARG_TYPE_AVTransportID",
-            Self::A_ARG_TYPE_RcsID => "A_ARG_TYPE_RcsID",
-            Self::A_ARG_TYPE_ItemInfoFilter => "A_ARG_TYPE_ItemInfoFilter",
-            Self::A_ARG_TYPE_Result => "A_ARG_TYPE_Result",
-            Self::A_ARG_TYPE_RenderingInfoList => "A_ARG_TYPE_RenderingInfoList",
-        }
-    }
+// ---------------------------------------------------------------------------
+// Static schema definitions — declarative metadata from UPnP spec tables
+// ---------------------------------------------------------------------------
+use crate::types::statevariable::StateVariableSchema;
 
-    fn is_evented(&self) -> bool {
-        // Per UPnP-av-ConnectionManager-v3 spec §4.2:
-        // Only DeviceClockInfoUpdates sends direct GENA NOTIFY (is_evented=YES, via_lastchange=—).
-        matches!(self, Self::DeviceClockInfoUpdates)
-    }
+/// All ConnectionManager state variable schemas.
+///
+/// This is the single source of truth for eventing, instance scoping,
+/// data types, and defaults — directly from the UPnP spec §4.2 tables.
+pub static STATE_VARIABLE_SCHEMAS: &[StateVariableSchema] = &[
+    // Core state variables (not evented)
+    StateVariableSchema {
+        name: "SourceProtocolInfo",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "SinkProtocolInfo",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "CurrentConnectionIDs",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // FeatureList — directly evented per spec §4.2
+    StateVariableSchema {
+        name: "FeatureList",
+        is_evented: true,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // ClockUpdateID — ui4 counter (not evented, but updated on clock changes)
+    StateVariableSchema {
+        name: "ClockUpdateID",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "ui4",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // DeviceClockInfoUpdates — directly evented per spec §4.2
+    StateVariableSchema {
+        name: "DeviceClockInfoUpdates",
+        is_evented: true,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // =========================================================================
+    // A_ARG_TYPE variables — type definitions for action arguments
+    // =========================================================================
 
-    fn via_lastchange(&self) -> bool {
-        // ConnectionManager has NO state variables that are indirectly evented via LastChange.
-        // All other vars (SourceProtocolInfo, SinkProtocolInfo, CurrentConnectionIDs,
-        // FeatureList, ClockUpdateID) are NOT evented at all (NO/NO).
-        false
-    }
-
-    fn is_instance_scoped(&self) -> bool {
-        // ConnectionManager state variables are NOT instance-scoped (global service state)
-        false
-    }
-
-    fn data_type_name(&self) -> &'static str {
-        match self {
-            Self::SourceProtocolInfo => "string",
-            Self::SinkProtocolInfo => "string",
-            Self::CurrentConnectionIDs => "string",
-            Self::FeatureList => "string",
-            Self::ClockUpdateID => "ui4",
-            Self::DeviceClockInfoUpdates => "string",
-            Self::A_ARG_TYPE_ConnectionStatus => "string",
-            Self::A_ARG_TYPE_ConnectionManager => "string",
-            Self::A_ARG_TYPE_Direction => "string",
-            Self::A_ARG_TYPE_ProtocolInfo => "string",
-            Self::A_ARG_TYPE_ConnectionID => "ui4",
-            Self::A_ARG_TYPE_AVTransportID => "ui4",
-            Self::A_ARG_TYPE_RcsID => "ui4",
-            Self::A_ARG_TYPE_ItemInfoFilter => "string",
-            Self::A_ARG_TYPE_Result => "string",
-            Self::A_ARG_TYPE_RenderingInfoList => "string",
-        }
-    }
-}
+    // A_ARG_TYPE_ConnectionStatus — string (OK, ContentFormatMismatch, etc.)
+    StateVariableSchema {
+        name: "A_ARG_TYPE_ConnectionStatus",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    // A_ARG_TYPE_ConnectionManager — string (UDN)
+    StateVariableSchema {
+        name: "A_ARG_TYPE_ConnectionManager",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    // A_ARG_TYPE_Direction — string (Input/Output)
+    StateVariableSchema {
+        name: "A_ARG_TYPE_Direction",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    // A_ARG_TYPE_ProtocolInfo — string (URI scheme + source + DLNA org + destination)
+    StateVariableSchema {
+        name: "A_ARG_TYPE_ProtocolInfo",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    // A_ARG_TYPE_ConnectionID — ui4
+    StateVariableSchema {
+        name: "A_ARG_TYPE_ConnectionID",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "ui4",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    // A_ARG_TYPE_AVTransportID — ui4
+    StateVariableSchema {
+        name: "A_ARG_TYPE_AVTransportID",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "ui4",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    // A_ARG_TYPE_RcsID — ui4 (RenderingControl service ID)
+    StateVariableSchema {
+        name: "A_ARG_TYPE_RcsID",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "ui4",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    // A_ARG_TYPE_ItemInfoFilter — string (DIDL-Lite filter)
+    StateVariableSchema {
+        name: "A_ARG_TYPE_ItemInfoFilter",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    // A_ARG_TYPE_Result — string (DIDL-Lite XML)
+    StateVariableSchema {
+        name: "A_ARG_TYPE_Result",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    // A_ARG_TYPE_RenderingInfoList — string (UDN list)
+    StateVariableSchema {
+        name: "A_ARG_TYPE_RenderingInfoList",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+];

@@ -982,138 +982,407 @@ impl std::fmt::Display for StateVariableName {
     }
 }
 
-impl crate::state::StateVariableName for StateVariableName {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Self::TransportState => "TransportState",
-            Self::TransportStatus => "TransportStatus",
-            Self::CurrentMediaCategory => "CurrentMediaCategory",
-            Self::AVTransportURI => "AVTransportURI",
-            Self::AVTransportURIMetaData => "AVTransportURIMetaData",
-            Self::NextAVTransportURI => "NextAVTransportURI",
-            Self::NextAVTransportURIMetaData => "NextAVTransportURIMetaData",
-            Self::CurrentTrackURI => "CurrentTrackURI",
-            Self::CurrentTrackMetaData => "CurrentTrackMetaData",
-            Self::CurrentTrack => "CurrentTrack",
-            Self::NumberOfTracks => "NumberOfTracks",
-            Self::CurrentTrackDuration => "CurrentTrackDuration",
-            Self::CurrentMediaDuration => "CurrentMediaDuration",
-            Self::RelativeTimePosition => "RelativeTimePosition",
-            Self::AbsoluteTimePosition => "AbsoluteTimePosition",
-            Self::RelativeCounterPosition => "RelativeCounterPosition",
-            Self::AbsoluteCounterPosition => "AbsoluteCounterPosition",
-            Self::PlaybackStorageMedium => "PlaybackStorageMedium",
-            Self::RecordStorageMedium => "RecordStorageMedium",
-            Self::PossiblePlaybackStorageMedia => "PossiblePlaybackStorageMedia",
-            Self::PossibleRecordStorageMedia => "PossibleRecordStorageMedia",
-            Self::CurrentPlayMode => "CurrentPlayMode",
-            Self::TransportPlaySpeed => "TransportPlaySpeed",
-            Self::RecordMediumWriteStatus => "RecordMediumWriteStatus",
-            Self::CurrentRecordQualityMode => "CurrentRecordQualityMode",
-            Self::PossibleRecordQualityModes => "PossibleRecordQualityModes",
-            Self::DRMState => "DRMState",
-            Self::LastChange => "LastChange",
-            Self::CurrentTransportActions => "CurrentTransportActions",
-            Self::A_ARG_TYPE_InstanceID => "A_ARG_TYPE_InstanceID",
-            Self::A_ARG_TYPE_SeekMode => "A_ARG_TYPE_SeekMode",
-            Self::A_ARG_TYPE_SeekTarget => "A_ARG_TYPE_SeekTarget",
-            Self::A_ARG_TYPE_RecordMedium => "A_ARG_TYPE_RecordMedium",
-            Self::A_ARG_TYPE_StreamFormat => "A_ARG_TYPE_StreamFormat",
-        }
-    }
+// ---------------------------------------------------------------------------
+// Static schema definitions — declarative metadata from UPnP spec tables
+// ---------------------------------------------------------------------------
+use crate::types::statevariable::StateVariableSchema;
 
-    fn is_evented(&self) -> bool {
-        // Per UPnP-av-AVTransport-v3 spec §6.1:
-        // LastChange sends direct GENA NOTIFY (is_evented=YES, via_lastchange=—).
-        matches!(self, Self::LastChange)
-    }
-
-    fn via_lastchange(&self) -> bool {
-        // All non-position state variables are indirectly evented via LastChange XML payload.
-        // Position vars (RelativeTimePosition, AbsoluteTimePosition, RelativeCounterPosition,
-        // AbsoluteCounterPosition) are NOT in LastChange per spec section 5.3 — must poll.
-        // A_ARG_TYPE_* variables are type definitions — not evented.
-        !matches!(
-            self,
-            Self::A_ARG_TYPE_InstanceID
-                | Self::A_ARG_TYPE_SeekMode
-                | Self::A_ARG_TYPE_SeekTarget
-                | Self::A_ARG_TYPE_RecordMedium
-                | Self::A_ARG_TYPE_StreamFormat
-                | Self::RelativeTimePosition
-                | Self::AbsoluteTimePosition
-                | Self::RelativeCounterPosition
-                | Self::AbsoluteCounterPosition
-        )
-    }
-
-    fn is_instance_scoped(&self) -> bool {
-        // Per-InstanceID variables (InstanceID > 0)
-        matches!(
-            self,
-            Self::AVTransportURI
-                | Self::AVTransportURIMetaData
-                | Self::NextAVTransportURI
-                | Self::NextAVTransportURIMetaData
-                | Self::CurrentTrackURI
-                | Self::CurrentTrackMetaData
-                | Self::CurrentTrack
-                | Self::NumberOfTracks
-                | Self::CurrentTrackDuration
-                | Self::CurrentMediaDuration
-                | Self::RelativeTimePosition
-                | Self::AbsoluteTimePosition
-                | Self::RelativeCounterPosition
-                | Self::AbsoluteCounterPosition
-                | Self::PlaybackStorageMedium
-                | Self::RecordStorageMedium
-                | Self::PossiblePlaybackStorageMedia
-                | Self::PossibleRecordStorageMedia
-                | Self::CurrentPlayMode
-                | Self::TransportPlaySpeed
-                | Self::RecordMediumWriteStatus
-                | Self::CurrentRecordQualityMode
-                | Self::PossibleRecordQualityModes
-                | Self::DRMState
-        )
-    }
-
-    fn data_type_name(&self) -> &'static str {
-        match self {
-            Self::TransportState => "string",
-            Self::TransportStatus => "string",
-            Self::CurrentMediaCategory => "string",
-            Self::AVTransportURI => "uri",
-            Self::AVTransportURIMetaData => "string",
-            Self::NextAVTransportURI => "uri",
-            Self::NextAVTransportURIMetaData => "string",
-            Self::CurrentTrackURI => "uri",
-            Self::CurrentTrackMetaData => "string",
-            Self::CurrentTrack => "ui4",
-            Self::NumberOfTracks => "ui4",
-            Self::CurrentTrackDuration => "string",
-            Self::CurrentMediaDuration => "string",
-            Self::RelativeTimePosition => "string",
-            Self::AbsoluteTimePosition => "string",
-            Self::RelativeCounterPosition => "i4",
-            Self::AbsoluteCounterPosition => "ui4",
-            Self::PlaybackStorageMedium => "string",
-            Self::RecordStorageMedium => "string",
-            Self::PossiblePlaybackStorageMedia => "string",
-            Self::PossibleRecordStorageMedia => "string",
-            Self::CurrentPlayMode => "string",
-            Self::TransportPlaySpeed => "string",
-            Self::RecordMediumWriteStatus => "string",
-            Self::CurrentRecordQualityMode => "string",
-            Self::PossibleRecordQualityModes => "string",
-            Self::DRMState => "string",
-            Self::LastChange => "string",
-            Self::CurrentTransportActions => "string",
-            Self::A_ARG_TYPE_InstanceID => "ui4",
-            Self::A_ARG_TYPE_SeekMode => "string",
-            Self::A_ARG_TYPE_SeekTarget => "string",
-            Self::A_ARG_TYPE_RecordMedium => "string",
-            Self::A_ARG_TYPE_StreamFormat => "string",
-        }
-    }
-}
+/// All AVTransport state variable schemas.
+///
+/// This is the single source of truth for eventing, instance scoping,
+/// data types, and defaults — directly from the UPnP spec §4.1 tables.
+pub static STATE_VARIABLE_SCHEMAS: &[StateVariableSchema] = &[
+    // Core transport state
+    StateVariableSchema {
+        name: "TransportState",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("STOPPED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "TransportStatus",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: Some("OK"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "CurrentMediaCategory",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: Some("NO_MEDIA"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // Media identity
+    StateVariableSchema {
+        name: "AVTransportURI",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "uri",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "AVTransportURIMetaData",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("NOT_IMPLEMENTED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "NextAVTransportURI",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "uri",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "NextAVTransportURIMetaData",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("NOT_IMPLEMENTED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "CurrentTrackURI",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "uri",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "CurrentTrackMetaData",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("NOT_IMPLEMENTED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // Playback position
+    StateVariableSchema {
+        name: "CurrentTrack",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui4",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "NumberOfTracks",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui4",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "CurrentTrackDuration",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("00:00:00"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "CurrentMediaDuration",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("00:00:00"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // Position vars — NOT in LastChange per spec §5.3
+    StateVariableSchema {
+        name: "RelativeTimePosition",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("NOT_IMPLEMENTED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "AbsoluteTimePosition",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("NOT_IMPLEMENTED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "RelativeCounterPosition",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: true,
+        data_type_name: "i4",
+        default: Some("2147483647"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "AbsoluteCounterPosition",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: true,
+        data_type_name: "ui4",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // Storage & capabilities
+    StateVariableSchema {
+        name: "PlaybackStorageMedium",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("NONE"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "RecordStorageMedium",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("NOT_IMPLEMENTED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "PossiblePlaybackStorageMedia",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: Some("NONE"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "PossibleRecordStorageMedia",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: Some("NOT_IMPLEMENTED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // Play control
+    StateVariableSchema {
+        name: "CurrentPlayMode",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("NORMAL"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "TransportPlaySpeed",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("1"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // Recording
+    StateVariableSchema {
+        name: "RecordMediumWriteStatus",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("NOT_IMPLEMENTED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "CurrentRecordQualityMode",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("NOT_IMPLEMENTED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "PossibleRecordQualityModes",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: Some("NOT_IMPLEMENTED"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "DRMState",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: Some("UNKNOWN"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // Eventing
+    StateVariableSchema {
+        name: "LastChange",
+        is_evented: true,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "CurrentTransportActions",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: Some("PLAY,STOP,PAUSE,SEEK,NEXT,PREVIOUS"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // A_ARG_TYPE variables — type definitions (not real state vars)
+    StateVariableSchema {
+        name: "A_ARG_TYPE_InstanceID",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "ui4",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_SeekMode",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: Some(&[
+            "REL_TIME",
+            "ABS_TIME",
+            "TRACK_NR",
+            "TIME_OFFSET",
+            "TRACK_OFFSET",
+            "ABSOLUTE_TIME",
+            "ABSOLUTE_TIME_PRES",
+            "ABSOLUTE_TIME_COUNTER",
+            "ABSOLUTE_TIME_COUNTER_PRES",
+        ]),
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_SeekTarget",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_RecordMedium",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_StreamFormat",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+];

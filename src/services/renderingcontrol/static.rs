@@ -265,143 +265,352 @@ impl std::fmt::Display for StateVariableName {
     }
 }
 
-impl crate::state::StateVariableName for StateVariableName {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Self::LastChange => "LastChange",
-            Self::PresetNameList => "PresetNameList",
-            Self::Brightness => "Brightness",
-            Self::Contrast => "Contrast",
-            Self::Sharpness => "Sharpness",
-            Self::RedVideoGain => "RedVideoGain",
-            Self::GreenVideoGain => "GreenVideoGain",
-            Self::BlueVideoGain => "BlueVideoGain",
-            Self::RedVideoBlackLevel => "RedVideoBlackLevel",
-            Self::GreenVideoBlackLevel => "GreenVideoBlackLevel",
-            Self::BlueVideoBlackLevel => "BlueVideoBlackLevel",
-            Self::ColorTemperature => "ColorTemperature",
-            Self::HorizontalKeystone => "HorizontalKeystone",
-            Self::VerticalKeystone => "VerticalKeystone",
-            Self::Mute => "Mute",
-            Self::Volume => "Volume",
-            Self::VolumeDB => "VolumeDB",
-            Self::Loudness => "Loudness",
-            Self::AllowedTransformSettings => "AllowedTransformSettings",
-            Self::TransformSettings => "TransformSettings",
-            Self::AllowedDefaultTransformSettings => "AllowedDefaultTransformSettings",
-            Self::DefaultTransformSettings => "DefaultTransformSettings",
-            Self::A_ARG_TYPE_InstanceID => "A_ARG_TYPE_InstanceID",
-            Self::A_ARG_TYPE_Channel => "A_ARG_TYPE_Channel",
-            Self::A_ARG_TYPE_PresetName => "A_ARG_TYPE_PresetName",
-            Self::A_ARG_TYPE_DeviceUDN => "A_ARG_TYPE_DeviceUDN",
-            Self::A_ARG_TYPE_ServiceType => "A_ARG_TYPE_ServiceType",
-            Self::A_ARG_TYPE_ServiceID => "A_ARG_TYPE_ServiceID",
-            Self::A_ARG_TYPE_StateVariableValuePairs => "A_ARG_TYPE_StateVariableValuePairs",
-            Self::A_ARG_TYPE_StateVariableList => "A_ARG_TYPE_StateVariableList",
-        }
-    }
+// ---------------------------------------------------------------------------
+// Static schema definitions — declarative metadata from UPnP spec tables
+// ---------------------------------------------------------------------------
+use crate::types::statevariable::StateVariableSchema;
 
-    fn is_evented(&self) -> bool {
-        // Per UPnP-av-RenderingControl-v3 spec §7.1:
-        // LastChange, AllowedDefaultTransformSettings, and DefaultTransformSettings
-        // send direct GENA NOTIFY (is_evented=YES, via_lastchange=—).
-        matches!(
-            self,
-            Self::LastChange
-                | Self::AllowedDefaultTransformSettings
-                | Self::DefaultTransformSettings
-        )
-    }
-
-    fn via_lastchange(&self) -> bool {
-        // Audio/video state variables are indirectly evented via LastChange XML payload.
-        // PresetNameList changes when presets are added/removed (may be out-of-band).
-        // A_ARG_TYPE_* variables are type definitions — not evented.
-        matches!(
-            self,
-            Self::Brightness
-                | Self::Contrast
-                | Self::Sharpness
-                | Self::RedVideoGain
-                | Self::GreenVideoGain
-                | Self::BlueVideoGain
-                | Self::RedVideoBlackLevel
-                | Self::GreenVideoBlackLevel
-                | Self::BlueVideoBlackLevel
-                | Self::ColorTemperature
-                | Self::HorizontalKeystone
-                | Self::VerticalKeystone
-                | Self::Mute
-                | Self::Volume
-                | Self::VolumeDB
-                | Self::Loudness
-                | Self::AllowedTransformSettings
-                | Self::TransformSettings
-        )
-    }
-
-    fn is_instance_scoped(&self) -> bool {
-        // Per-InstanceID variables (InstanceID > 0)
-        matches!(
-            self,
-            Self::Brightness
-                | Self::Contrast
-                | Self::Sharpness
-                | Self::RedVideoGain
-                | Self::GreenVideoGain
-                | Self::BlueVideoGain
-                | Self::RedVideoBlackLevel
-                | Self::GreenVideoBlackLevel
-                | Self::BlueVideoBlackLevel
-                | Self::ColorTemperature
-                | Self::HorizontalKeystone
-                | Self::VerticalKeystone
-                | Self::Mute
-                | Self::Volume
-                | Self::VolumeDB
-                | Self::Loudness
-                | Self::AllowedTransformSettings
-                | Self::TransformSettings
-                | Self::AllowedDefaultTransformSettings
-                | Self::DefaultTransformSettings
-        )
-    }
-
-    fn data_type_name(&self) -> &'static str {
-        match self {
-            Self::LastChange => "string",
-            Self::PresetNameList => "string",
-            Self::Brightness => "ui2",
-            Self::Contrast => "ui2",
-            Self::Sharpness => "ui2",
-            Self::RedVideoGain => "ui2",
-            Self::GreenVideoGain => "ui2",
-            Self::BlueVideoGain => "ui2",
-            Self::RedVideoBlackLevel => "ui2",
-            Self::GreenVideoBlackLevel => "ui2",
-            Self::BlueVideoBlackLevel => "ui2",
-            Self::ColorTemperature => "ui2",
-            Self::HorizontalKeystone => "i2",
-            Self::VerticalKeystone => "i2",
-            Self::Mute => "boolean",
-            Self::Volume => "ui2",
-            Self::VolumeDB => "i2",
-            Self::Loudness => "boolean",
-            Self::AllowedTransformSettings => "string",
-            Self::TransformSettings => "string",
-            Self::AllowedDefaultTransformSettings => "string",
-            Self::DefaultTransformSettings => "string",
-            Self::A_ARG_TYPE_InstanceID => "ui4",
-            Self::A_ARG_TYPE_Channel => "string",
-            Self::A_ARG_TYPE_PresetName => "string",
-            Self::A_ARG_TYPE_DeviceUDN => "string",
-            Self::A_ARG_TYPE_ServiceType => "string",
-            Self::A_ARG_TYPE_ServiceID => "string",
-            Self::A_ARG_TYPE_StateVariableValuePairs => "string",
-            Self::A_ARG_TYPE_StateVariableList => "string",
-        }
-    }
-}
+/// All RenderingControl state variable schemas.
+///
+/// This is the single source of truth for eventing, instance scoping,
+/// data types, and defaults — directly from the UPnP spec §4.1 tables.
+pub static STATE_VARIABLE_SCHEMAS: &[StateVariableSchema] = &[
+    // Eventing
+    StateVariableSchema {
+        name: "LastChange",
+        is_evented: true,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: Some(""),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // Non-instance-scoped
+    StateVariableSchema {
+        name: "PresetNameList",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: Some(""),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // Instance-scoped audio/video state variables
+    StateVariableSchema {
+        name: "Brightness",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "Contrast",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "Sharpness",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "RedVideoGain",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "GreenVideoGain",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "BlueVideoGain",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "RedVideoBlackLevel",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "GreenVideoBlackLevel",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "BlueVideoBlackLevel",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "ColorTemperature",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "HorizontalKeystone",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "i2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "VerticalKeystone",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "i2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "Mute",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "boolean",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "Volume",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "ui2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "VolumeDB",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "i2",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "Loudness",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "boolean",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "AllowedTransformSettings",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "TransformSettings",
+        is_evented: false,
+        via_lastchange: true,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // Direct NOTIFY variables
+    StateVariableSchema {
+        name: "AllowedDefaultTransformSettings",
+        is_evented: true,
+        via_lastchange: false,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    StateVariableSchema {
+        name: "DefaultTransformSettings",
+        is_evented: true,
+        via_lastchange: false,
+        is_instance_scoped: true,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: false,
+    },
+    // A_ARG_TYPE variables — type definitions (not real state vars)
+    StateVariableSchema {
+        name: "A_ARG_TYPE_InstanceID",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "ui4",
+        default: Some("0"),
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_Channel",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_PresetName",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_DeviceUDN",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_ServiceType",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_ServiceID",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_StateVariableValuePairs",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+    StateVariableSchema {
+        name: "A_ARG_TYPE_StateVariableList",
+        is_evented: false,
+        via_lastchange: false,
+        is_instance_scoped: false,
+        data_type_name: "string",
+        default: None,
+        allowed_values: None,
+        allowed_value_range: None,
+        argument_type: true,
+    },
+];
 
 impl ActionName {
     /// Returns the UPnP action name string.

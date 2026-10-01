@@ -7,9 +7,8 @@ use std::sync::Arc;
 use super::r#static::Channel;
 use super::{RenderingControlService, r#static::StateVariableName as RCStateVarName};
 use crate::services::renderingcontrol::traits::*;
-use crate::types::upnp::{
-    Action, ActionArgs, Argument, ArgumentDirection, Error, StateValue,
-};
+use crate::types::{Action, ActionArgs, Argument, ArgumentDirection};
+use crate::types::upnp::{Error, DataType};
 
 // ===========================================================================
 // Required Actions (R)
@@ -252,7 +251,7 @@ impl<T: SetBrightness> Action for ActionSetBrightness<T> {
         self.service.set_state_var(
             instance_id,
             RCStateVarName::Brightness,
-            StateValue::Ui2(desired),
+            DataType::Ui2(desired),
         );
         Ok(ActionArgs::new())
     }
@@ -378,7 +377,7 @@ impl<T: SetContrast> Action for ActionSetContrast<T> {
         self.service.set_state_var(
             instance_id,
             RCStateVarName::Contrast,
-            StateValue::Ui2(desired),
+            DataType::Ui2(desired),
         );
         Ok(ActionArgs::new())
     }
@@ -504,7 +503,7 @@ impl<T: SetSharpness> Action for ActionSetSharpness<T> {
         self.service.set_state_var(
             instance_id,
             RCStateVarName::Sharpness,
-            StateValue::Ui2(desired),
+            DataType::Ui2(desired),
         );
         Ok(ActionArgs::new())
     }
@@ -631,7 +630,7 @@ macro_rules! impl_video_color {
                 self.service.set_state_var(
                     instance_id,
                     RCStateVarName::$state_var_enum,
-                    StateValue::Ui2(desired),
+                    DataType::Ui2(desired),
                 );
                 Ok(ActionArgs::new())
             }
@@ -861,7 +860,7 @@ impl<T: SetColorTemperature> Action for ActionSetColorTemperature<T> {
         self.service.set_state_var(
             instance_id,
             RCStateVarName::ColorTemperature,
-            StateValue::Ui2(desired),
+            DataType::Ui2(desired),
         );
         Ok(ActionArgs::new())
     }
@@ -982,7 +981,7 @@ impl<T: SetHorizontalKeystone> Action for ActionSetHorizontalKeystone<T> {
         self.service.set_state_var(
             instance_id,
             RCStateVarName::HorizontalKeystone,
-            StateValue::I2(desired),
+            DataType::I2(desired),
         );
         Ok(ActionArgs::new())
     }
@@ -1103,7 +1102,7 @@ impl<T: SetVerticalKeystone> Action for ActionSetVerticalKeystone<T> {
         self.service.set_state_var(
             instance_id,
             RCStateVarName::VerticalKeystone,
-            StateValue::I2(desired),
+            DataType::I2(desired),
         );
         Ok(ActionArgs::new())
     }
@@ -1246,7 +1245,7 @@ impl<T: SetMute> Action for ActionSetMute<T> {
         self.service.set_state_var(
             instance_id,
             RCStateVarName::Mute,
-            StateValue::Boolean(desired),
+            DataType::Boolean(desired),
         );
         Ok(ActionArgs::new())
     }
@@ -1387,7 +1386,7 @@ impl<T: SetVolume> Action for ActionSetVolume<T> {
         self.service.set_state_var(
             instance_id,
             RCStateVarName::Volume,
-            StateValue::Ui2(desired),
+            DataType::Ui2(desired),
         );
         Ok(ActionArgs::new())
     }

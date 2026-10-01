@@ -9,7 +9,8 @@ use std::sync::Arc;
 use super::AvTransportService;
 use super::r#static::{PlayMode, StateVariableName};
 use crate::services::avtransport::traits::*;
-use crate::types::upnp::{Action, ActionArgs, Argument, ArgumentDirection, Error, StateValue};
+use crate::types::{Action, ActionArgs, Argument, ArgumentDirection};
+use crate::types::upnp::{Error, DataType};
 
 // ===========================================================================
 // Required Actions (R)
@@ -73,12 +74,12 @@ impl<T: Play> Action for ActionPlay<T> {
         self.service.set_state_var(
             instance_id,
             StateVariableName::TransportState,
-            StateValue::String("PLAYING".to_string()),
+            DataType::String("PLAYING".to_string()),
         );
         self.service.set_state_var(
             instance_id,
             StateVariableName::TransportPlaySpeed,
-            StateValue::String(speed),
+            DataType::String(speed),
         );
 
         Ok(ActionArgs::new())
@@ -132,7 +133,7 @@ impl<T: Stop> Action for ActionStop<T> {
         self.service.set_state_var(
             instance_id,
             StateVariableName::TransportState,
-            StateValue::String("STOPPED".to_string()),
+            DataType::String("STOPPED".to_string()),
         );
 
         Ok(ActionArgs::new())
@@ -212,7 +213,7 @@ impl<T: Seek> Action for ActionSeek<T> {
         self.service.set_state_var(
             instance_id,
             StateVariableName::TransportState,
-            StateValue::String("TRANSITIONING".to_string()),
+            DataType::String("TRANSITIONING".to_string()),
         );
 
         Ok(ActionArgs::new())
@@ -266,7 +267,7 @@ impl<T: Next> Action for ActionNext<T> {
         self.service.set_state_var(
             instance_id,
             StateVariableName::TransportState,
-            StateValue::String("TRANSITIONING".to_string()),
+            DataType::String("TRANSITIONING".to_string()),
         );
 
         Ok(ActionArgs::new())
@@ -320,7 +321,7 @@ impl<T: Previous> Action for ActionPrevious<T> {
         self.service.set_state_var(
             instance_id,
             StateVariableName::TransportState,
-            StateValue::String("TRANSITIONING".to_string()),
+            DataType::String("TRANSITIONING".to_string()),
         );
 
         Ok(ActionArgs::new())
@@ -404,12 +405,12 @@ impl<T: SetAVTransportURI> Action for ActionSetAVTransportURI<T> {
             self.service.set_state_var(
                 instance_id,
                 StateVariableName::AVTransportURI,
-                StateValue::Uri(current_uri),
+                DataType::Uri(current_uri),
             );
             self.service.set_state_var(
                 instance_id,
                 StateVariableName::AVTransportURIMetaData,
-                StateValue::String(current_uri_metadata),
+                DataType::String(current_uri_metadata),
             );
             // PlaybackStorageMedium and CurrentMediaCategory derived from URI/number of tracks
             // are updated by the application bridge via set_state_var calls after Load completes.
@@ -946,7 +947,7 @@ impl<T: Pause> Action for ActionPause<T> {
         self.service.set_state_var(
             instance_id,
             StateVariableName::TransportState,
-            StateValue::String("PAUSED_PLAYBACK".to_string()),
+            DataType::String("PAUSED_PLAYBACK".to_string()),
         );
 
         Ok(ActionArgs::new())
@@ -1012,7 +1013,7 @@ impl<T: SetPlayMode> Action for ActionSetPlayMode<T> {
         self.service.set_state_var(
             instance_id,
             StateVariableName::CurrentPlayMode,
-            StateValue::String(play_mode.as_str().to_string()),
+            DataType::String(play_mode.as_str().to_string()),
         );
 
         Ok(ActionArgs::new())

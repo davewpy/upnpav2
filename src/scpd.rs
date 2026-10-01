@@ -14,7 +14,8 @@ use quick_xml::escape::escape as escape_xml_str;
 
 use crate::config::{Icon, SCPD_PATH_PREFIX, SCPD_PATH_SUFFIX, SsdpDevice, UpnpDevice};
 use crate::http::{CacheControl, ContentType, HttpHandler, UpnpResponse};
-use crate::types::upnp::{ActionMap, StateStore};
+use crate::state::StateStore;
+use crate::types::ActionMap;
 
 /// HTTP handler for device description and icon.
 #[derive(Clone)]
@@ -234,9 +235,7 @@ impl HttpHandler for DescriptionHandler {
 ///
 /// Serves dynamically generated SCPD XML from the action map and state variables.
 /// Holds only Arc references — no owned data.
-pub struct ScpdHandler<
-    S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariableName,
-> {
+pub struct ScpdHandler<S: std::fmt::Display + Clone + std::hash::Hash + Copy> {
     path: &'static str,
     actions: Arc<std::sync::Mutex<ActionMap>>,
     state_store: Arc<std::sync::Mutex<StateStore<S>>>,
@@ -244,9 +243,7 @@ pub struct ScpdHandler<
     config_id: u32,
 }
 
-impl<S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariableName>
-    ScpdHandler<S>
-{
+impl<S: std::fmt::Display + Clone + std::hash::Hash + Copy> ScpdHandler<S> {
     /// Create a new SCPD handler.
     pub fn new(
         actions: Arc<std::sync::Mutex<ActionMap>>,
@@ -377,7 +374,7 @@ impl<S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariabl
             if let Some(def) = store.schema(&name) {
                 // Filter: only emit if referenced by an action, evented, or A_ARG_TYPE
                 let is_referenced = referenced_vars.contains(&name.to_string());
-                let is_evented = def.name.is_evented() || def.name.via_lastchange();
+                let is_evented = def.is_evented || def.via_lastchange;
                 let is_arg_type = def.argument_type;
 
                 if !is_referenced && !is_evented && !is_arg_type {
@@ -385,28 +382,28 @@ impl<S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariabl
                 }
 
                 xml.push_str("    <stateVariable");
-                if def.name.is_evented() || def.name.via_lastchange() {
+                if def.is_evented || def.via_lastchange {
                     xml.push_str(" sendEvents=\"yes\"");
                 }
                 xml.push_str(">\n");
                 xml.push_str(&format!("      <name>{}</name>\n", name));
                 xml.push_str(&format!(
                     "      <dataType>{}</dataType>\n",
-                    def.name.data_type_name()
+                    def.data_type_name
                 ));
 
                 // A_ARG_TYPE variables are type definitions — no defaultValue
                 if !def.argument_type {
                     xml.push_str(&format!(
                         "      <defaultValue>{}</defaultValue>\n",
-                        escape_xml(&def.default.as_value_str())
+                        escape_xml(def.default.unwrap_or(""))
                     ));
                 }
 
                 if let Some(allowed) = &def.allowed_values {
                     if !allowed.is_empty() {
                         xml.push_str("      <allowedValueList>\n");
-                        for val in allowed {
+                        for val in allowed.iter() {
                             xml.push_str(&format!(
                                 "        <allowedValue>{}</allowedValue>\n",
                                 escape_xml(val)
@@ -442,15 +439,8 @@ impl<S: std::fmt::Display + Clone + std::hash::Hash + crate::state::StateVariabl
     }
 }
 
-impl<
-    S: std::fmt::Display
-        + Clone
-        + std::hash::Hash
-        + Send
-        + Sync
-        + 'static
-        + crate::state::StateVariableName,
-> Clone for ScpdHandler<S>
+impl<S: std::fmt::Display + Clone + std::hash::Hash + Copy + Send + Sync + 'static> Clone
+    for ScpdHandler<S>
 {
     fn clone(&self) -> Self {
         Self {
@@ -463,15 +453,8 @@ impl<
     }
 }
 
-impl<
-    S: std::fmt::Display
-        + Clone
-        + std::hash::Hash
-        + Send
-        + Sync
-        + 'static
-        + crate::state::StateVariableName,
-> HttpHandler for ScpdHandler<S>
+impl<S: std::fmt::Display + Clone + std::hash::Hash + Copy + Send + Sync + 'static> HttpHandler
+    for ScpdHandler<S>
 {
     fn path(&self) -> &'static str {
         self.path
