@@ -13,7 +13,7 @@ pub use config::{DeviceConfig, SsdpDevice, UpnpDevice};
 pub use didl::{DidlDocument, Item, Resource, parse_didl, serialize_didl};
 pub use gena::{EventPublisher, Subscriber};
 pub use http::{HttpHandler, HttpServer};
-pub use scpd::{DescriptionHandler};
+pub use scpd::DescriptionHandler;
 pub use services::{avtransport, connectionmanager, renderingcontrol};
 pub use soap::{build_fault, build_response, parse_request};
 pub use ssdp::{Server, start};

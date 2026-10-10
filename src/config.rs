@@ -229,20 +229,25 @@ impl DeviceConfig {
         Self { device }
     }
 
-    /// Start the UPnP device — SSDP, HTTP server with all handlers, and serve.
+    /// Start SSDP discovery — returns a handle for stop/byebye/update.
     ///
-    /// Takes the SsdpDevice built at start() time from runtime network info,
-    /// and Arc handles to the three service instances for SOAP/SCPD/eventing handlers.
-    pub async fn start(
+    /// This is a synchronous call that spawns async tasks internally but
+    /// returns immediately with a `Server` handle for lifecycle management.
+    pub fn start_ssdp(&self, ssdp: &SsdpDevice) -> crate::ssdp::Server {
+        crate::ssdp::start(ssdp.clone())
+    }
+
+    /// Start HTTP server with all UPnP routes (description, SCPD, SOAP).
+    ///
+    /// This does NOT start SSDP — use `start_ssdp()` separately. The HTTP task
+    /// can be aborted independently without affecting SSDP discovery.
+    pub async fn start_http(
         &self,
-        ssdp: SsdpDevice,
+        ssdp: &SsdpDevice,
         av_transport: &Arc<crate::services::avtransport::AvTransportService>,
         connection_manager: &Arc<crate::services::connectionmanager::ConnectionManagerService>,
         rendering_control: &Arc<crate::services::renderingcontrol::RenderingControlService>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Start SSDP discovery
-        let _ssdp_server = crate::ssdp::start(ssdp.clone());
-
         let server_header = self.device.server_header.clone();
 
         // Description handler
