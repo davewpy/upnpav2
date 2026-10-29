@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use super::r#static::Direction;
 use crate::services::connectionmanager::traits::*;
-use crate::types::{Action, ActionArgs, Argument, ArgumentDirection};
 use crate::types::upnp::Error;
+use crate::types::{Action, ActionArgs, Argument, ArgumentDirection};
 
 // ===========================================================================
 // Required Actions (R)
@@ -260,6 +260,8 @@ pub struct ActionPrepareForConnection<T: PrepareForConnection> {
             std::collections::HashMap<i32, crate::services::connectionmanager::ConnectionInfo>,
         >,
     >,
+    /// Service for allocating connection IDs atomically.
+    service: Arc<crate::services::connectionmanager::ConnectionManagerService>,
 }
 
 impl<T: PrepareForConnection> ActionPrepareForConnection<T> {
@@ -270,10 +272,12 @@ impl<T: PrepareForConnection> ActionPrepareForConnection<T> {
                 std::collections::HashMap<i32, crate::services::connectionmanager::ConnectionInfo>,
             >,
         >,
+        service: Arc<crate::services::connectionmanager::ConnectionManagerService>,
     ) -> Self {
         Self {
             trait_impl: Arc::new(trait_impl),
             connection_table,
+            service,
         }
     }
 }
@@ -346,15 +350,19 @@ impl<T: PrepareForConnection> Action for ActionPrepareForConnection<T> {
             .unwrap_or(-1);
         let direction_str = args.get("Direction").ok_or(Error::ArgumentValueInvalid)?;
         let direction = Direction::from_str(direction_str).ok_or(Error::ArgumentValueInvalid)?;
+
+        // Allocate connection ID from service (atomic, starts at 1)
+        let connection_id = self.service.allocate_connection_id();
+
         let input = PrepareForConnectionInput {
             remote_protocol_info,
-            peer_connection_manager,
+            peer_connection_manager: peer_connection_manager.clone(),
             peer_connection_id,
-            direction,
+            direction: direction.clone(),
         };
         let output = self
             .trait_impl
-            .prepare_for_connection(input.clone())
+            .prepare_for_connection(connection_id, input.clone())
             .map_err(|e| {
                 // Map connection manager errors to UPnP error codes
                 match e.to_string().as_str() {
@@ -372,7 +380,7 @@ impl<T: PrepareForConnection> Action for ActionPrepareForConnection<T> {
         {
             let mut table = self.connection_table.lock().unwrap();
             table.insert(
-                output.connection_id,
+                connection_id,
                 crate::services::connectionmanager::ConnectionInfo {
                     protocol_info: output.av_transport_id.to_string(), // Placeholder — app bridge sets this
                     direction: input.direction,
@@ -383,7 +391,7 @@ impl<T: PrepareForConnection> Action for ActionPrepareForConnection<T> {
         }
 
         let mut out = ActionArgs::new();
-        out.set("ConnectionID".to_string(), output.connection_id.to_string());
+        out.set("ConnectionID".to_string(), connection_id.to_string());
         out.set(
             "AVTransportID".to_string(),
             output.av_transport_id.to_string(),

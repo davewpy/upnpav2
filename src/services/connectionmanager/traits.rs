@@ -116,13 +116,15 @@ pub trait GetFeatureList: Send + Sync {
 // Allowed Actions (A)
 // ===========================================================================
 
-/// PrepareForConnection — Allocate connection, return ConnectionID.
+/// PrepareForConnection — Validate direction and return AVTransportID/RcsID bindings.
 ///
+/// The connection_id is allocated atomically by the service before this trait is called.
 /// Direction: "Input" or "Output"
 pub trait PrepareForConnection: Send + Sync {
     type Error: Display;
     fn prepare_for_connection(
         &self,
+        connection_id: i32,
         input: PrepareForConnectionInput,
     ) -> Result<PrepareForConnectionOutput, Self::Error>;
 }

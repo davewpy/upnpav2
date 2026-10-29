@@ -11,6 +11,7 @@ use crate::types::upnp::{DataType, Services};
 use crate::types::{Action, ActionMap};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicI32, Ordering};
 
 /// Connection table entry — tracks AVTransportID/RcsID bindings per spec §4.2.
 #[derive(Debug, Clone)]
@@ -45,6 +46,8 @@ pub struct ConnectionManagerService {
     event_publisher: Arc<std::sync::Mutex<EventPublisher>>,
     /// Connection table: ConnectionID → (AVTransportID, RcsID, metadata).
     connection_table: Arc<std::sync::Mutex<HashMap<i32, ConnectionInfo>>>,
+    /// Monotonically increasing connection ID counter (starts at 1).
+    next_connection_id: Arc<AtomicI32>,
 }
 
 /// Shared event publisher type alias for convenience.
@@ -84,12 +87,21 @@ impl ConnectionManagerService {
             state_store: Arc::new(std::sync::Mutex::new(state_store)),
             event_publisher: Arc::new(std::sync::Mutex::new(publisher)),
             connection_table: Arc::new(std::sync::Mutex::new(connection_table)),
+            next_connection_id: Arc::new(AtomicI32::new(1)),
         }
     }
 
     /// Get a clone of the shared event publisher.
     pub fn event_publisher(&self) -> ConnectionManagerEventPublisher {
         Arc::clone(&self.event_publisher)
+    }
+
+    /// Allocate a new connection ID atomically (starts at 1, increments per call).
+    ///
+    /// Per UPnP AV spec §5.4.3: ConnectionID is allocated by PrepareForConnection()
+    /// and used to identify the connection in subsequent operations.
+    pub fn allocate_connection_id(&self) -> i32 {
+        self.next_connection_id.fetch_add(1, Ordering::SeqCst)
     }
 
     /// Get an Arc-wrapped reference to the state store for action construction.
@@ -184,6 +196,24 @@ impl ConnectionManagerService {
             .contains_key(&connection_id)
             .then_some(())
             .ok_or(r#static::Error::InvalidConnectionReference)
+    }
+
+    /// Validate that an InstanceID was allocated by PrepareForConnection().
+    ///
+    /// Checks if any registered connection has a matching ConnectionID (which equals
+    /// AVTransportID/RcsID for single-instance devices per UPnP spec §4.2).
+    ///
+    /// Returns error 718 if not found.
+    pub fn validate_instance(&self, instance_id: i32) -> Result<(), r#static::Error> {
+        let locked = self.connection_table.lock().unwrap();
+        for (conn_id, _) in locked.iter() {
+            // Per spec: ConnectionID, AVTransportID, and RcsID all equal the connection_id
+            // for single-instance devices.
+            if *conn_id == instance_id {
+                return Ok(());
+            }
+        }
+        Err(r#static::Error::InvalidInstanceID)
     }
 
     /// Get the number of active connections.

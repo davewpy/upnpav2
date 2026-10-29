@@ -223,6 +223,11 @@ pub enum Error {
     /// Closing one or more connections on this device may resolve the issue.
     /// Used by: PrepareForConnection()
     InternalStorageSystemCapabilitiesExceeded = 711,
+
+    // === Instance Reference Errors ===
+    /// The instance reference argument does not refer to a valid instance established by this service.
+    /// Used by: AVTransport (GetMediaInfo, GetPositionInfo, etc.), RenderingControl (GetVolume, GetMute), ConnectionManager (ValidateInstance)
+    InvalidInstanceID = 718,
 }
 
 impl Error {
@@ -267,6 +272,9 @@ impl Error {
             Self::InternalStorageSystemCapabilitiesExceeded => {
                 "The connection cannot be established because the device does not have sufficient internal storage system capabilities to handle the new connection"
             }
+            Self::InvalidInstanceID => {
+                "The instance reference argument does not refer to a valid instance established by this service"
+            }
         }
     }
 
@@ -284,6 +292,7 @@ impl Error {
             709 => Some(Self::InternalProcessingResourcesExceeded),
             710 => Some(Self::InternalMemoryResourcesExceeded),
             711 => Some(Self::InternalStorageSystemCapabilitiesExceeded),
+            718 => Some(Self::InvalidInstanceID),
             _ => None,
         }
     }
