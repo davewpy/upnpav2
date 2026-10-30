@@ -27,7 +27,7 @@ pub struct EventPublisher {
     subscribers: HashMap<String, Subscriber>,
     service_url: String,
     multicast_enabled: bool,
-    multicast_socket: Option<UdpSocket>,
+    multicast_socket: Option<UdpSocket>, //TODO: This isn't done yet.
 }
 
 impl EventPublisher {
