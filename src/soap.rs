@@ -120,7 +120,7 @@ async fn handle_request(
                         )
                     }
                     Err(e) => {
-                        tracing::debug!(
+                        tracing::warn!(
                             "error: {} -> code {} ({})",
                             action_name,
                             e as i32,
